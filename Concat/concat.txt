@@ -1,0 +1,471 @@
+-------------------------------------------------------------------------
+                         ConCat/Split V5.0.0.1
+-------------------------------------------------------------------------
+
+ConCat/Split is a Windows Explorer context menu extension that provides
+two complementary facilities:
+
+1. A split facility that lets you easily convert a single large file into
+   several smaller ones. You can copy these smaller files onto removable
+   media such as a memory card, floppy disks, or CDs, or send them through
+   email facilities that will not allow large attachments.
+
+2. A file concatenation facility that performs the same operation as the
+   command line "copy /b SrcFile1+SrcFile2 [+SrcFileN] DestnFile"
+   operation. With ConCat, you can append any number of files and store the
+   result as a new file, or overwrite one of the original files.
+
+ConCat - Copyright (c) 1996-2006 JD Design, All Rights Reserved
+-------------------------------------------------------------------------
+
+
+
+
+Note
+----
+You might like to print this file so that you can easily refer to it
+during installation.
+
+You can re-read this file after installation by clicking the Start ->
+Programs -> JD Design -> ConCat -> Readme menu item.
+
+
+
+
+-------------------------------------------------------------------------
+			      Installation
+-------------------------------------------------------------------------
+
+You can execute the concat.msi file directly from your web browser (if
+you're accessing ConCat from our web site), or download it and run it
+from your hard disk, or from the supplied floppy disk (if you've ordered
+one with your registration).
+
+If you don't have an up-to-date copy of the Windows Installer, you may
+need to install a more recent version.
+
+For Windows 9x/ME use this URL:
+
+http://download.microsoft.com/download/WindowsInstaller/Install/2.0/W9XMe/EN-US/InstMsiA.exe
+
+For Windows NT/2000, use this one:
+
+http://download.microsoft.com/download/WindowsInstaller/Install/2.0/NT45/EN-US/InstMsiW.exe
+
+If Microsoft have changed the location of these redistributables, try
+the following starting point and look for the Windows Installer
+Redistributables:
+
+http://www.microsoft.com/downloads/
+
+
+The setup will copy files to your computer and then prompt you for your
+registration information (which you can skip if you're evaluating it).
+
+The last step of Setup informs you that ConCat is installed and briefly
+tells you how to use it. If you're upgrading an existing version, setup
+may need to restart Windows.
+
+Installing under Windows NT4, 2000, XP, Windows 2003 Server, or Vista 
+---------------------------------------------------------------------
+
+You need to run the installation from an account with Administrator 
+privileges.
+
+If an administrator applies the EnforceShellExtensionSecurity policy to
+limit the use of shell extensions to approved ones, they will need to
+add ConCat to that list in the registry:
+
+Create a REG_SZ value whose name is 
+"{B2D4ADE0-0C85-11cf-872F-444553540000}" under the
+HKLM\Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved
+branch.
+
+
+
+Administration Installation
+---------------------------
+
+The installer supports the MSI administrative installation options.
+
+For example:
+
+	msiexec /jm concat.msi
+
+"Advertises" ConCat on all the machine's users Programs menu items.
+When a user invokes the Start->Programs->JD Design->ConCat->Readme option,
+the installation of ConCat will complete.
+
+or:
+	msiexec /a conat.msi
+
+Performs an "administrative" installation to a shared network location.
+
+
+
+Files Installed by Setup
+------------------------
+
+Setup copies the following files to the installation folder:
+
+
+ConCat.dll	The ConCat Context Menu DLL
+ConCat.lang	The (English) resource language DLL
+ConCat.txt	This file
+
+And for Windows 9x:
+
+unicows.dll	The Microsoft Layer for Unicode
+
+
+Setup will also add relevant registry entries and Start menu items.
+
+
+
+
+
+-------------------------------------------------------------------------
+			How Do You Use ConCat?
+-------------------------------------------------------------------------
+
+1. Split
+--------
+
+Select the file that you want to split in an Explorer window. Display the
+context menu by clicking with the secondary mouse button, or use the
+Explorer window's File menu. Choose the "Split File..." menu item to
+display the Split dialog box.
+
+Operation of this dialog box is straightforward. The "Split Size" group
+radio buttons populate the combo box list with either:
+a. Common drive sizes, or
+b. The free space size of any removable drives on your system that have
+media inserted in them. When you select this option, it may take a few
+seconds to find what's available. If there are no removable drives with
+media inserted , the combo list will be empty.
+
+You can enter a custom size setting by typing a value (in KB) in the edit
+field of the combo box.
+
+The destination names field shows the range of file names that you will get
+from the split operation. You can change the file name (and path) for the
+destination files if you use the Change button.
+
+To perform the split operation, press the "Split File" button.
+
+Note: the split operation is non-destructive; it will not delete your
+original file.
+
+Operation is fast (depending only on the size of file you are splitting).
+
+2. Concatenate
+--------------
+
+Copy the individual files that you have previously split into a folder on 
+your hard disk.
+
+Select the files that you want to concatenate in an Explorer window.
+Display the context menu by clicking with the secondary mouse button, or
+use the Explorer window's File menu. Choose the "Concatenate Files..."
+menu item to display the Concatenate dialog box.
+
+Important: The selected order of the files in the Explorer window
+determines the order that the files are copied. The first file is always
+the one with the focus (dotted rectangle). Here is how you can ensure that
+you get the files copied in the correct order:
+
+i.   Select the first file.
+
+ii.  Hold down the shift key and click the last file that you want.
+
+iii. Release the shift key and right click on the first selected item to
+     bring up the context menu.
+
+iv.  Choose the "Concatenate Files..." item to display the Concatenate
+     Files dialog box.
+
+v.   The order that the files appear in the "Copy" list box, is the order
+     that they will be concatenated. Ensure that this is the order that
+     you want.
+
+In an unregistered version, the default destination file name is the same
+as the first selected file. If you want to alter this, change the "To"
+file name before you press the OK button.
+
+Misc
+----
+If you'd prefer not to have the bitmap displayed on the Explorer context
+menu, add the following registry setting:
+
+	HKEY_CURRENT_USER\Software\JD Design\ConCat
+
+Create a DWORD value named "Options" and set the value to 0 to disable
+the bitmap.
+
+
+-------------------------------------------------------------------------
+			       Registering
+-------------------------------------------------------------------------
+
+The easiest way to register is online using a credit card via a secure web
+site - see our web pages for the details and links to the secure site.
+
+Alternatively, anyone with a UK bank account can register by sending a
+cheque made payable to "J Lowndes" at:
+
+	162 Mow Cop Road
+	Mow Cop
+	Stoke-on-Trent
+	ST7 4NH
+	England
+
+The current prices are:
+
+Code	Product					Price (GBP)
+JDU1	ExpPrint				7
+JDU2	TouchPro				7
+JDU3	ConCat					7
+JDU4	Tab2Desk				7
+JDU5	Space Patrol/Control	7
+JDUP	Partial Set (JDU1...4)	12
+JDUF	The Full Set (JDU1...5)	15
+
+You can find the latest prices on our web site, or by calling us on
++44 (0)1782 516923.
+
+
+
+
+When you receive your registration information, enter your registered name
+and number into the About dialog box. You can access this dialog from the
+ConCat dialog About button.
+
+You must enter the information exactly as it appears. The case, spaces,
+and punctuation of the name are significant, and the number is composed of
+the characters 0-9, A-F and again, the case of the letters is significant.
+If you register the set of utilities, be sure to use the correct
+registration number for each product.
+
+You can check that registration has worked by re-displaying the About box
+from the main dialog. When the product is successfully registered your
+registration name is displayed in the About dialog rather than the entry
+fields.
+
+
+Updates
+-------
+
+Any updates to the current version are free to registered users by
+downloading the latest version from our web site.
+
+
+
+Problems?
+---------
+
+See the FAQ on our web site for answers to common problems.
+
+Additional Features for Registered Users
+-----------------------------------------
+
+1. The ConCat dialog box has the ability to re-order the files you want to 
+   join, making it unimportant to select the files in the correct order in 
+   the first place. Select the file in the Copy list box and use the up 
+   and down buttons as required. The buttons respond to the keyboard 
+   accelerators Alt+U & Alt+D.
+
+2. Automatically selects the correct destination filename for files that 
+   are split and retain their Split/ConCat naming convention.
+
+3. The ability to automatically create a batch file that will rejoin the 
+   files easily on any MS-DOS compatible system that does not have 
+   Split/ConCat installed.
+
+4. The last split size is saved between uses.
+
+
+Removal
+-------
+
+Use the Control Panel, Add/Remove Programs applet and choose the ConCat
+item.
+
+Revision History
+----------------
+
+V5.0.0.1  19 Nov 2006
+---------------------
+Windows Vista compatible.
+Registration is now per-user rather than per-machine so as to work under
+Vista without requiring elevation.
+You will need to reenter your registration details if you upgrade from an
+earlier version.
+
+V5.0.0.0  30 Sept 2005
+----------------------
+Handle splitting to files > 4GB. Note that only NTFS formatted disks
+(NT4, Windows 2000, Windows XP, and later operating systems) supports files
+greater than 4GB.
+New fixed size options for extended CD & DVD sizes.
+Internal coding improvments to reduce memory usage with large selections.
+Fix for minor cosmetic problem when the Split dialog is initially shown
+without the "to" file name(s).
+Registry setting option to not display the context menu bitmap.
+Use new registration number scheme.
+Delete split files if the split operation is cancelled.
+
+V4.1.0.1  20 Feb 2004
+---------------------
+Minor change to display the regionalised About dialog from the Split dialog
+rather than the embedded English version.
+
+V4.1.0.0  11 Jan 2004
+---------------------
+Changes to allow language translation by having all resources in a separate
+DLL (concat.lang).
+Fix for a specific situation where a system error was misreported.
+Added more precise error message if the destn file couldn't be opened during
+the Split operation.
+
+V4.0.0.0  21 June 2003
+----------------------
+Split dialog has more preset media sizes (for memory cards and CDs) and a
+"removable" media option that scans all removable drives and presents the
+available space on each. Custom sizes are still catered for by entering the
+figure in the combo box edit field. Very old (small) floppy preset sizes
+have been removed.
+
+Split & ConCat operations are multi-threaded - the UI stays responsive and
+redraws while performing the file operations, and the operations can be
+cancelled.
+
+Supports Unicode. Windows 9x & ME operating systems aren't fully Unicode,
+so support under those operating systems is limited.
+
+Setup now uses the MS Windows installer.
+
+Dialog Cancel buttons are now labelled Close except when the Split or
+Concatenate operations are working.
+
+Fixed a potential problem where the ConCat "To" destination file is in use
+when the ConCat operation starts. It would have resulted in being unable to
+rename the temporary destination file to the original name.
+
+Revised several error messages and improved error reporting by displaying
+the underlying Windows system error message.
+
+V3.3.3.0  4 April 2002
+----------------------
+Added auto-complete to the Concatenate "To" edit control.
+Code changes ready for Unicode version.
+Corrected potential problem in initialisation of split dialog.
+
+V3.3.2.0  4 Oct 2001
+--------------------
+Fixed a bug that caused a crash if low disk space occurred when concatenating
+files.
+Modified the ConCat list display to ensure that the right hand side is
+normally visible since the numerical file extension is the most relevant part
+of the name to see. Similar for the display of the current file name that's
+being concatenated.
+In a registered version, the ConCat list is now automatically sorted.
+Enhanced the code used in a registered version to remove the digits to form
+the original file name.
+
+V3.3.1.0  16 Sept 2001
+----------------------
+Changes to the concatenate dialog to display the file part number, and to just
+show the filename (rather than the full path) in the progress section.
+The concatenate file overwrite prompt now displays the file name.
+Correction to support numerical output of file sizes in locales that use Indic
+grouping of numbers (e.g. 12,34,45,789).
+
+V3.3.0.0  25 Nov 2000
+----------------------
+Added progress displays to the dialogs to give feedback when manipulating
+large files.
+Added support for files greater than 4GB. Note that only NTFS formatted disks
+(NT4, Windows 2000, Windows XP, and later operating systems) supports files
+greater than 4GB.
+
+V3.2.1.1  15 Sept 2000
+----------------------
+The file names in the copy batch file now have surrounding quotes to work
+with file names that have spaces in them.
+Added the option to overwrite any existing files in the split operation.
+
+V3.2.1.0  25 May 2000
+---------------------
+Fixed a 2GB problem in the split dialog operation. Files > 2GB can now be
+split and rejoined correctly.
+
+V3.2.0.0  26 March 2000
+----------------------
+Registered version saves the last used split size.
+Display the original file size value in regional number format.
+Disabled the Change button for the batch file creation in an unregistered
+version.
+Removed the "success" dialog boxes. Confirmation is now done with a
+beep instead. Failure will still display suitable error messages.
+
+V3.1.4.1  18 Sept 1999
+----------------------
+Modified the About dialog. Changed the registration number field to make
+it a little easier to enter the number. Updated the home page URL and
+added a mail link.
+
+V3.1.4.0  11 July 1999
+----------------------
+Modified file handling (yet again). The previous method had problems
+splitting files > 800 MB under Windows 9x, and even Windows NT could not
+cater for manipulating files where the total size approached 2GB. This
+version can now split and join very large files under both Windows 9x
+and NT.
+
+V3.1.3.0   3 July 1999
+----------------------
+Modified to handle very large files.
+
+V3.1.2.1   30 January 1999
+---------------------------
+Minor change to allow international registration names.
+
+V3.1.2.0   14 December 1998
+---------------------------
+Modified the file handling operations to allow manipulation of very large 
+files (several hundred MB).
+
+V3.1.1.2 December 1998
+----------------------
+Rebuilt, and updated documentation for the new self extracting installer.
+
+V3.1.1 June 1998
+----------------
+Added cosmetic bitmaps for the menu items to aid visibility.
+
+V3.1 October 1997
+-----------------
+New registration system.
+
+Improved presentation of long items in the ConCat dialog list box - uses 
+the familiar ellipses notation for long paths.
+
+Support
+-------
+We maintain a list of frequently asked questions on our web site. If you 
+have a technical question, please check there to see if you can find an
+answer before contacting us.
+
+We will post the latest versions of our utilities on our web site as soon 
+as they are available, so please take a look to keep up to date and to see 
+what other software and services we offer.
+
+Web Site:	http://www.jddesign.co.uk/
+
+If you have any suggestions for improvements to any of our utilities, 
+please contact us via email (our up-to-date address is on our web site's
+contacts page). It's always good to hear from people using our products,
+and we appreciate your taking the time to tell us.
+
+Thanks
+   JD Design

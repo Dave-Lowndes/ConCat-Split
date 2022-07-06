@@ -1,0 +1,9 @@
+Could the copy batch file be automatically put in the same location as the destination files?
+Could split do a verify afterwards - by calculating SHA hashes for the contents of each file as it writes them, then read/verify the hashes after?
+---
+Could do with handling Unicode file names for the batch file
+---
+Imporve performance by using overlapped IO
+---
+Concat option to delete the original files on success?
+---

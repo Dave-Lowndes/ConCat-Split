@@ -1,0 +1,41 @@
+Help file
+
+Some way of ensuring files are re-joined in the same way they are split.
+
+Copy directly to floppy?
+
+How 'bout making the program an [executable] one (exe)?
+
+I would like to see ConCat take the following runtime switches or
+settings:
+i)  Insert a separator between each file - Y/N ?
+      (if Y, use text stored in some specified file with a standard
+name, such as CONCAT.SEP).
+ii) Add trailing CR/LF if not present - Y/N?
+
+
+Remember the last location that the split files are saved to.
+
+Can I make use of IProgressDialog? W2K/ME minimum
+
+
+I have a series of .csv files I used your contat product on.  First off, very easy to use - like that a lot.  But, the in the file created the last record of the 1st file and the first record of the 2nd file get merged.  Most likely there is no CRLF on the end of the 1st file.  Any work around?
+---
+I have v5 of ConCat and I was wondering if the program could be amended to better handle some of the split files I often download. For example, I get many files in the format:
+
+movie.mpg.001
+movie.mpg.002
+movie.mpg.003
+movie.mpg.004
+
+but when ConCat attempts to "best guess" the combined file name I end up with:
+
+movie.mpg.00
+
+instead of
+
+movie.mpg
+
+Can anything be done?
+Tester: Fernando Viñan-Cano ferd@star-one.co.uk
+---

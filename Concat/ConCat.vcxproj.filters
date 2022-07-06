@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{64b9ba6b-339f-487d-bc55-0c46f0de3bbd}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;hpj;bat;for;f90</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{48926dab-38db-4d02-ac11-a0ebcc3496d7}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;fi;fd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{631ac659-b787-453c-90ce-637e0b64b574}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;cnt;rtf;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{68cfab89-b9a6-492c-ad7f-eff61da21148}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\LibraryCode">
+      <UniqueIdentifier>{353d75d1-aa57-45a5-a40d-6cb33d88c7c2}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Concat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\CommonAboutBoxV3Reg\AboutDlg.cpp">
+      <Filter>Source Files\LibraryCode</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\CommonAboutBoxV3Reg\time_t_funcs.cpp">
+      <Filter>Source Files\LibraryCode</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\CommonAboutBoxV3Reg\VerUtil.cpp">
+      <Filter>Source Files\LibraryCode</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\RegGen\RegDecV3.cpp">
+      <Filter>Source Files\LibraryCode</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\CommonCode\CheckForUpdate.cpp">
+      <Filter>Source Files\LibraryCode</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\RegGen\RegKeyRegistryFuncs.cpp">
+      <Filter>Source Files\LibraryCode</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Concat.def">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\readme\revision_history.htm">
+      <Filter>Docs</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="concat.rc">
+      <Filter>Source Files</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="..\..\CommonAboutBoxV3Reg\AboutDlg.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="chandle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="concat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GETVSTR.H">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RegEnc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VerUtil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="bitmap1.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="concat_m.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="down.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="down.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="icon1.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="up.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="up.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\readme\concatdialog.png">
+      <Filter>Docs</Filter>
+    </Image>
+    <Image Include="..\readme\concatmenu.png">
+      <Filter>Docs</Filter>
+    </Image>
+    <Image Include="..\readme\splitdialog.png">
+      <Filter>Docs</Filter>
+    </Image>
+    <Image Include="..\readme\splitmenu.png">
+      <Filter>Docs</Filter>
+    </Image>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,8 @@
+LIBRARY         CONCAT
+;DESCRIPTION     "File Concatonation & Split Explorer Shell Extension Utility"
+
+EXPORTS
+    DllCanUnloadNow	PRIVATE
+    DllGetClassObject	PRIVATE
+;	Product_Install
+;	Install
