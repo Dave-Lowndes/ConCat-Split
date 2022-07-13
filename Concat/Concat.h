@@ -32,26 +32,21 @@ protected:
     ULONG   m_cRef;         // Object reference count
     
 public:
-    CClassFactory ();
+    CClassFactory () noexcept;
     ~CClassFactory ();
         
     // IUnknown methods
-    STDMETHODIMP            QueryInterface (REFIID, LPVOID FAR *);
-    STDMETHODIMP_(ULONG)    AddRef ();
-    STDMETHODIMP_(ULONG)    Release ();
+    STDMETHODIMP            QueryInterface (REFIID, LPVOID FAR *) noexcept override;
+    STDMETHODIMP_(ULONG)    AddRef () noexcept override;
+    STDMETHODIMP_(ULONG)    Release () noexcept override;
     
     // IClassFactory methods
-    STDMETHODIMP    CreateInstance (LPUNKNOWN, REFIID, LPVOID FAR *);
-    STDMETHODIMP    LockServer (BOOL);
+    STDMETHODIMP    CreateInstance (LPUNKNOWN, REFIID, LPVOID FAR *) noexcept override;
+    STDMETHODIMP    LockServer (BOOL) noexcept override;
 };
 
-//class FNAME
-//{
-//public:
-//	TCHAR n[_MAX_PATH];
-//};
-
-typedef std::vector< std::basic_string<TCHAR> > SELITEMS;
+// Rename (or eliminate) this to something like STRINGVEC - code may be more understandable?
+typedef std::vector<std::wstring> SELITEMS;
 
 //
 // CShellExtension defines a context menu shell extension object.
@@ -67,23 +62,23 @@ private:
     std::optional<CMyRegData> m_RegData;
 
 public:
-    CShellExtension ();
+    CShellExtension () noexcept;
     ~CShellExtension ();
     
     // IUnknown methods
-    STDMETHODIMP            QueryInterface (REFIID, LPVOID FAR *);
-    STDMETHODIMP_(ULONG)    AddRef ();
-    STDMETHODIMP_(ULONG)    Release ();
+    STDMETHODIMP            QueryInterface (REFIID, LPVOID FAR *) noexcept override;
+    STDMETHODIMP_(ULONG)    AddRef () noexcept override;
+    STDMETHODIMP_(ULONG)    Release () noexcept override;
     
     // IContextMenu methods
-    STDMETHODIMP QueryContextMenu( HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags );
+    STDMETHODIMP QueryContextMenu( HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags ) noexcept override;
 
-    STDMETHODIMP InvokeCommand( LPCMINVOKECOMMANDINFO lpcmi );
+    STDMETHODIMP InvokeCommand( LPCMINVOKECOMMANDINFO lpcmi ) noexcept override;
 
-    STDMETHODIMP GetCommandString( UINT_PTR idCmd, UINT uFlags, UINT FAR *reserved, LPSTR pszName, UINT cchMax );
+    STDMETHODIMP GetCommandString( UINT_PTR idCmd, UINT uFlags, UINT FAR *reserved, LPSTR pszName, UINT cchMax ) noexcept override;
 
     // IShellExtInit method
-    STDMETHODIMP Initialize (LPCITEMIDLIST pidlFolder, LPDATAOBJECT lpdobj, HKEY hKeyProgID);
+    STDMETHODIMP Initialize (LPCITEMIDLIST pidlFolder, LPDATAOBJECT lpdobj, HKEY hKeyProgID) noexcept override;
 
 private:
 	HBITMAP m_hSplitBitmap;

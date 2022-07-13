@@ -289,7 +289,7 @@ STDAPI DllCanUnloadNow (void)
 /////////////////////////////////////////////////////////////////////////////
 // CClassFactory member functions
 
-CClassFactory::CClassFactory ()
+CClassFactory::CClassFactory () noexcept
 {
 	m_cRef = 1;
     InterlockedIncrement( &g_cRefThisDll );
@@ -300,7 +300,7 @@ CClassFactory::~CClassFactory ()
 	InterlockedDecrement( &g_cRefThisDll );
 }
 
-STDMETHODIMP CClassFactory::QueryInterface (REFIID riid, LPVOID FAR *ppv)
+STDMETHODIMP CClassFactory::QueryInterface (REFIID riid, LPVOID FAR *ppv) noexcept
 {
 	if (IsEqualIID (riid, IID_IUnknown))
 	{
@@ -323,12 +323,12 @@ STDMETHODIMP CClassFactory::QueryInterface (REFIID riid, LPVOID FAR *ppv)
 	}
 }
 
-STDMETHODIMP_(ULONG) CClassFactory::AddRef ()
+STDMETHODIMP_(ULONG) CClassFactory::AddRef () noexcept
 {
 	return ++m_cRef;
 }
 
-STDMETHODIMP_(ULONG) CClassFactory::Release ()
+STDMETHODIMP_(ULONG) CClassFactory::Release () noexcept
 {
 	if ( --m_cRef == 0 )
 	{
@@ -350,7 +350,7 @@ STDMETHODIMP_(ULONG) CClassFactory::Release ()
 //   HRESULT code signifying success or failure
 //
 
-STDMETHODIMP CClassFactory::CreateInstance( LPUNKNOWN pUnkOuter, REFIID riid, LPVOID FAR *ppvObj )
+STDMETHODIMP CClassFactory::CreateInstance( LPUNKNOWN pUnkOuter, REFIID riid, LPVOID FAR *ppvObj ) noexcept
 {
 	*ppvObj = NULL;
 
@@ -381,7 +381,7 @@ STDMETHODIMP CClassFactory::CreateInstance( LPUNKNOWN pUnkOuter, REFIID riid, LP
 // LockServer increments or decrements the DLL's lock count.
 //
 
-STDMETHODIMP CClassFactory::LockServer (BOOL /* fLock */)
+STDMETHODIMP CClassFactory::LockServer (BOOL /* fLock */) noexcept
 {
 	return ResultFromScode (E_NOTIMPL);
 }
@@ -389,7 +389,7 @@ STDMETHODIMP CClassFactory::LockServer (BOOL /* fLock */)
 /////////////////////////////////////////////////////////////////////////////
 // CShellExtension member functions
 
-CShellExtension::CShellExtension ()
+CShellExtension::CShellExtension () noexcept
 {
 	m_cRef = 1;
 	m_hSplitBitmap = LoadBitmap( g_hInstance, MAKEINTRESOURCE( IDB_SPLIT_MENU_BMP ) );
@@ -448,7 +448,7 @@ CShellExtension::~CShellExtension ()
 	m_hConcatBitmap = NULL;
 }
 
-STDMETHODIMP CShellExtension::QueryInterface (REFIID riid, LPVOID FAR *ppv)
+STDMETHODIMP CShellExtension::QueryInterface (REFIID riid, LPVOID FAR *ppv) noexcept
 {
 	if (IsEqualIID (riid, IID_IUnknown))
 	{
@@ -478,12 +478,12 @@ STDMETHODIMP CShellExtension::QueryInterface (REFIID riid, LPVOID FAR *ppv)
 	}
 }
 
-STDMETHODIMP_(ULONG) CShellExtension::AddRef ()
+STDMETHODIMP_(ULONG) CShellExtension::AddRef () noexcept
 {
 	return ++m_cRef;
 }
 
-STDMETHODIMP_(ULONG) CShellExtension::Release ()
+STDMETHODIMP_(ULONG) CShellExtension::Release () noexcept
 {
 	if ( --m_cRef == 0 )
 	{
@@ -542,7 +542,7 @@ static BOOL FileExists( LPCTSTR pFileName ) noexcept
 //   field specifies the number of items added to the context menu.
 //
 
-STDMETHODIMP CShellExtension::QueryContextMenu( HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT /* idCmdLast */, UINT uFlags  )
+STDMETHODIMP CShellExtension::QueryContextMenu( HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT /* idCmdLast */, UINT uFlags  ) noexcept
 {
 	//
 	// Add new menu items to the context menu.
@@ -622,21 +622,22 @@ STDMETHODIMP CShellExtension::QueryContextMenu( HMENU hMenu, UINT indexMenu, UIN
 	}
 }
 
-struct SEL_FILES
+// Encapsulates the data that is passed down to the dialog functions
+class CSelPlusReg
 {
-	std::optional<CMyRegData> * pRegData;
+public:
+	// Prevent inadvertent copying
+	CSelPlusReg() = delete;
+	CSelPlusReg( const CSelPlusReg& ) = delete;
+	CSelPlusReg operator=( const CSelPlusReg& ) = delete;
 
-	/* Concatenate facility */
-	SELITEMS* pFiles;			// Ptr to collection of file names (entry 0 in split is the original file)
-	TCHAR szToName[_MAX_PATH];	// Name of the "to" file name
-	// ^^^ Re-used in Split as the destn name
+	CSelPlusReg( const SELITEMS& Files, const std::optional<CMyRegData>& RegData ) noexcept : m_Files{ Files }, m_RegData{RegData}
+	{
+	}
 
-	/* Split facility */
-	UINT NumFiles;				// The number of files that will be created
-	UINT64 FSize;				// Original file's size
-	UINT64 SplitSize;			// Size of the files to create
-	bool bBatchFile;
-	TCHAR szBatchName[_MAX_PATH];
+//private:
+	const SELITEMS & m_Files;			// Reference to the collection of file names that were selected in Explorer (entry 0 in split is the original file)
+	const std::optional<CMyRegData> & m_RegData;	// Reference to the registration data
 };
 
 static int ResMessageBox( HWND hWnd, int ResId, LPCTSTR pCaption, const int Flags ) noexcept
@@ -744,16 +745,17 @@ The buffer itself is a fixed size, allocated at the start of the operation in
 order to minimise heap allocations (and reduce CPU time and contention in the
 heap) during the copying.
 */
-#define NUM_BUFFERS 2	// I think it's pointless having more than 2 buffers, no more throughput will occur
-
-static CEvent g_BufferFilled[NUM_BUFFERS];	// A signal from the reader to the writer that the buffer is ready
-static CEvent g_BufferEmptied[NUM_BUFFERS];	// A signal from the writer to the reader that the buffer if free
 
 static CEvent g_StopCommonWriterThread;
 
 class CTransferBuffer
 {
 public:
+	// Prevent inadvertent copying
+	//CTransferBuffer() = default;
+	//CTransferBuffer( const CTransferBuffer& ) = delete;
+	CTransferBuffer operator=( const CTransferBuffer& ) = delete;
+
 	BYTE * GetBuffer() noexcept
 	{
 		return &vBuffer[0];
@@ -775,16 +777,50 @@ public:
 	DWORD WriteErrorValue;	// GetLastError value if write fails
 private:
 	vector<BYTE> vBuffer;
+	CEvent evtBufferFilled;		// A signal from the reader to the writer that the buffer is ready
+	CEvent evtBufferEmptied;	// A signal from the writer to the reader that the buffer is free
+
+public:
+	void SetBufferEmptied()
+	{
+		evtBufferEmptied.SetEvent();
+	}
+	void SetBufferFilled()
+	{
+		evtBufferFilled.SetEvent();
+	}
+	void WaitForEmpty()
+	{
+		CSingleLock WriterWait( &evtBufferEmptied );
+		WriterWait.Lock();
+	}
+	void WaitForFilled()
+	{
+		CSingleLock WriterWait( &evtBufferFilled );
+		WriterWait.Lock();
+	}
+	DWORD WaitForFilledOrStop()
+	{
+		// The buffer event MUST be first here so that it takes precedence over
+		// the stop signal, otherwise we may handle the stop while there is a
+		// buffer outstanding.
+		CSyncObject* evts[2] = { &evtBufferFilled, &g_StopCommonWriterThread };
+		CMultiLock Waiter( evts, _countof( evts ) );
+
+		const DWORD eventID = Waiter.Lock( INFINITE, false );
+		return eventID;
+	}
 };
 
 /* Allocate 2 buffers of the maximal block size - so that we only do heap
  * allocation once for the whole split operation.
  * Having 2 buffers allows the reader thread to keep going at the same time
-  * as the writer thread.
+ * as the writer thread.
  */
-static CTransferBuffer g_TransBuffers[NUM_BUFFERS];
+// I think it's pointless having more than 2 buffers, no more throughput will occur
+static CTransferBuffer g_TransBuffers[2];
 
-static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t & CurrentBuffer, HWND hProgress )
+static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t CurrentBuffer, HWND hProgress )
 {
 	DWORD dwError = ERROR_SUCCESS;
 
@@ -794,13 +830,12 @@ static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t & Cur
 	if ( hSrcFile.IsValid() )
 	{
 		/* Find the file size */
-		ULARGE_INTEGER FileSize;
-		FileSize.LowPart = GetFileSize( hSrcFile, &FileSize.HighPart );
+		LARGE_INTEGER FileSize;
 
 		/* Check for errors */
-		if ( !( ( -1 == FileSize.LowPart ) && ( GetLastError() != NO_ERROR ) ) )
+		if ( GetFileSizeEx( hSrcFile, &FileSize ) )
 		{
-			ULARGE_INTEGER Remaining = FileSize;
+			auto Remaining = FileSize;
 
 			PostMessage( hProgress, PBM_SETRANGE32, 0, 0x8000 );
 
@@ -813,42 +848,47 @@ static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t & Cur
 				PostMessage( hProgress, PBM_SETPOS, ProgPos, 0 );
 				}
 
-				/* Wait for the buffer to be empty */
-				CSingleLock WriterWait( &g_BufferEmptied[CurrentBuffer] );
-				WriterWait.Lock();
+				CTransferBuffer& rtb = g_TransBuffers[CurrentBuffer];
 
-				CTransferBuffer & rtb = g_TransBuffers[CurrentBuffer];
+				/* Wait for the buffer to be empty */
+				rtb.WaitForEmpty();
 
 				/* Was there any error from the last write? */
 				if ( rtb.WriteErrorValue == ERROR_SUCCESS )
 				{
 					/* Read/Write in small (hopefully optimal sized) chunks */
-					DWORD ThisBlockSize;
 					const DWORD BufferSize = rtb.GetBufferSize();
 
-					if ( Remaining.QuadPart > BufferSize )
-					{
-						ThisBlockSize = BufferSize;
-					}
-					else
-					{
-						// This is valid to do because we've just checked that it's the remainder
-						ThisBlockSize = Remaining.LowPart;
-					}
+					const DWORD ThisBlockSize = Remaining.QuadPart > BufferSize ?
+										BufferSize :
+										// This is valid to do because we've just checked that it's the remainder
+										Remaining.LowPart;
+					
+#ifdef _DEBUG
+					TRACE("ReadFile %d\n", CurrentBuffer);
+					LARGE_INTEGER startCount;
+					QueryPerformanceCounter( &startCount );
+#endif
 
 					/* Handle the next chunk from the source file */
 					DWORD dwBytesRead;
 					if ( ReadFile( hSrcFile, rtb.GetBuffer(), ThisBlockSize, &dwBytesRead, NULL ) )
 					{
+#ifdef _DEBUG
+						LARGE_INTEGER endCount;
+						QueryPerformanceCounter( &endCount );
+						TRACE( "ReadFile %d done in %d\n", CurrentBuffer, endCount.QuadPart - startCount.QuadPart );
+#endif
+
 						/* Save the file handle & data length with the buffer */
 						rtb.fh = hDestnFile;
 						rtb.SizeOfData = dwBytesRead;
 
 						/* Signal to the writer that there's something waiting for it */
-						g_BufferFilled[CurrentBuffer].SetEvent();
+						rtb.SetBufferFilled();
 
 						/* Use the next buffer */
-						CurrentBuffer = (CurrentBuffer + 1) % NUM_BUFFERS;
+						CurrentBuffer = (CurrentBuffer + 1) % _countof( g_TransBuffers );
 					}
 					else
 					{
@@ -909,27 +949,58 @@ static int ThreadMessageBox( HWND hParent, LPCTSTR lpText, LPCTSTR lpCaption, UI
 	return mbp.RetVal;
 }
 
-class CMyThreadData
+/* Common members used for split and concat threads */
+class CommonThreadData
 {
 public:
-	/* Common members used for split and concat threads */
-	SEL_FILES sf;
+	// Prevent inadvertent copying
+	CommonThreadData() = default;
+	CommonThreadData( const CommonThreadData& ) = delete;
+	CommonThreadData operator=( const CommonThreadData& ) = delete;
+
+	SELITEMS Files;		// The collection of file names that are being joined
+
 	HWND hProgress;	// Handle to the progress control
 	HWND hParentWnd;	// Dialog (parent) window handle
 	std::vector<HWND> vhDisabledCtrls;	// The controls that need re-enabling at the end of the operation
+};
 
-	/* Split members */
+class ConcatThreadData : public CommonThreadData
+{
+public:
+	// Prevent inadvertent copying
+	ConcatThreadData() = default;
+	ConcatThreadData( const ConcatThreadData& ) = delete;
+	ConcatThreadData operator=( const ConcatThreadData& ) = delete;
+
+	wstring sTempName;	// The temporary working file name while concatenating
+	wstring sToName;	// The final copy destination file name
+};
+
+class SplitThreadData : public CommonThreadData
+{
+public:
+	// Prevent inadvertent copying
+	SplitThreadData() = default;
+	SplitThreadData( const SplitThreadData& ) = delete;
+	SplitThreadData operator=( const SplitThreadData& ) = delete;
+
+	/* Split members used to pass values to the worker thread */
 	int DigitWidth;
 	UINT64 SrcRemaining;
 	UINT64 SrcFileSize;
 	CFileHandle hSrcFile;
 	CFileHandle hBatchFile;
 
-	/* Concat members */
-	TCHAR szTempName[_MAX_PATH];
+	// Used in the dialog and the worker thread
+	UINT NumFiles;				// The number of files that will be created
+	UINT64 FSize;				// Original file's size
+	UINT64 SplitSize;			// Size of the files to create
+	wstring sBatchName;
+	wstring sToFileName;
 };
 
-static void UIEnable( const CMyThreadData & td ) noexcept
+static void UIEnable( const CommonThreadData & td ) noexcept
 {
 	/* Re-enable the control windows */
 	for ( const auto it : td.vhDisabledCtrls )
@@ -949,6 +1020,7 @@ static void UIEnable( const CMyThreadData & td ) noexcept
 	EnableMenuItem( ::GetSystemMenu( td.hParentWnd, FALSE ), SC_CLOSE, MF_BYCOMMAND | MF_ENABLED );
 }
 
+// TODO: Modify to return a tuple
 static DWORD GetTargetSize( const SELITEMS & Files, LARGE_INTEGER & TargetSize ) noexcept
 {
 	DWORD dwError = ERROR_SUCCESS;
@@ -992,26 +1064,29 @@ static unsigned __stdcall CommonWriterThread( void * /*pParams*/ )
 
 	do
 	{
-		/* Wait for the signal to do something.
-		 * The buffer event MUST be first here so that it takes precedence over
-		  * the stop signal, otherwise we may handle the stop while there is a
-		  * buffer outstanding.
-		 */
-		CSyncObject * evts[2] = { &g_BufferFilled[CurBuf], &g_StopCommonWriterThread };
-		CMultiLock Waiter( evts, _countof( evts ) );
+		/* Use the current transfer buffer */
+		CTransferBuffer& rtb = g_TransBuffers[CurBuf];
 
-		const DWORD eventID = Waiter.Lock( INFINITE, false );
+		// Wait for the signal to do something.
+		const DWORD eventID = rtb.WaitForFilledOrStop();
 
 		if ( eventID == WAIT_OBJECT_0 )
 		{
-			/* Use the current transfer buffer */
-			CTransferBuffer & rtb = g_TransBuffers[CurBuf];
-
 			/* Write the chunk out to the destn file */
 			DWORD dwBytesWritten;
+#ifdef _DEBUG
+			TRACE( "WriteFile %d\n", CurBuf );
+			LARGE_INTEGER startCount;
+			QueryPerformanceCounter( &startCount );
+#endif
 
 			if ( WriteFile( rtb.fh, rtb.GetBuffer(), rtb.SizeOfData, &dwBytesWritten, NULL ) )
 			{
+#ifdef _DEBUG
+				LARGE_INTEGER endCount;
+				QueryPerformanceCounter( &endCount );
+				TRACE( "WriteFile %d done in %d\n", CurBuf, endCount.QuadPart - startCount.QuadPart );
+#endif
 				/* All ok this chunk */
 				_ASSERTE( rtb.SizeOfData == dwBytesWritten );
 #if _DEBUG
@@ -1025,10 +1100,10 @@ static unsigned __stdcall CommonWriterThread( void * /*pParams*/ )
 			}
 
 			/* Signal that this buffer is now empty */
-			g_BufferEmptied[CurBuf].SetEvent();
+			rtb.SetBufferEmptied();
 
 			/* Next buffer */
-			CurBuf = (CurBuf + 1) % NUM_BUFFERS;
+			CurBuf = (CurBuf + 1) % _countof( g_TransBuffers );
 		}
 		else
 		{
@@ -1044,18 +1119,19 @@ static unsigned __stdcall CommonWriterThread( void * /*pParams*/ )
 
 static unsigned __stdcall ConcatControlThread_Reader( void * pParams )
 {
-	CMyThreadData * ptd = static_cast<CMyThreadData *>(pParams);
+	// Get passed a reference (non-null pointer) to the thread data
+	ConcatThreadData & ptd = *(static_cast<ConcatThreadData *>(pParams));
 
 	bool bErrorAlreadyReported = false;
 
 	/* Find the total file size required for the target file */
 	LARGE_INTEGER TargetSize;
-	DWORD dwError = GetTargetSize( *(ptd->sf.pFiles), TargetSize );
+	DWORD dwError = GetTargetSize( ptd.Files, TargetSize );
 
 	if ( dwError == ERROR_SUCCESS )
 	{
 		/* Open the file for writing */
-		CFileHandle hTempFile( CreateFile( ptd->szTempName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL ) );
+		CFileHandle hTempFile( CreateFile( ptd.sTempName.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL));
 
 		if ( hTempFile.IsValid() )
 		{
@@ -1072,15 +1148,14 @@ static unsigned __stdcall ConcatControlThread_Reader( void * pParams )
 					{
 						size_t CurrentBuffer = 0;
 
-						/* Initially the buffers are signaled as empty */
-						for ( size_t i = 0; i < NUM_BUFFERS; ++i )
+						/* Initially the buffers are signalled as empty */
+						for ( auto & tb : g_TransBuffers )
 						{
-							g_BufferEmptied[i].SetEvent();
-
-							g_TransBuffers[i].InitBuffer( Granularity );
+							tb.SetBufferEmptied();
+							tb.InitBuffer( Granularity );
 						}
 
-						/* Start the split writer thread */
+						/* Start the concatenate writer thread */
 						UINT tid;
 						::CHandle hThread( reinterpret_cast<HANDLE>( _beginthreadex( NULL, 0, CommonWriterThread, NULL, 0, &tid ) ) );
 
@@ -1088,16 +1163,16 @@ static unsigned __stdcall ConcatControlThread_Reader( void * pParams )
 						SELITEMS::const_iterator itName;
 						UINT indx;
 
-						for ( indx = 0, itName = ptd->sf.pFiles->begin();
-							( itName != ptd->sf.pFiles->end() ) && ( dwError == ERROR_SUCCESS) && !g_bCancel;
+						for ( indx = 0, itName = ptd.Files.begin();
+							( itName != ptd.Files.end() ) && ( dwError == ERROR_SUCCESS) && !g_bCancel;
 							++indx, ++itName )
 						{
 							/* Update the progress control with the item number and filename of the current item */
-							PostMessage( ptd->hParentWnd, UWM_UPDATE_PROGRESS, indx, 0 );
+							PostMessage( ptd.hParentWnd, UWM_UPDATE_PROGRESS, indx, 0 );
 
 							/* Read the contents of the file */
 							/* Append them to the new temporary file */
-							dwError = ConcatenateFile( hTempFile, itName->c_str(), CurrentBuffer, ptd->hProgress );
+							dwError = ConcatenateFile( hTempFile, itName->c_str(), CurrentBuffer, ptd.hProgress );
 							if ( dwError != ERROR_SUCCESS )
 							{
 								LPVOID lpMsgBuf;
@@ -1119,7 +1194,7 @@ static unsigned __stdcall ConcatControlThread_Reader( void * pParams )
 								wsprintf( szMsg, szFmt/*_T("Failed while joining file '%s'\n\n%s")*/, (LPCTSTR) itName->c_str(), (LPCTSTR) lpMsgBuf );
 
 //								LoadString( g_hResInst, IDS_FAIL_JOIN_CAPTION, szFmt, _countof( szFmt ) );
-								ThreadMessageBox( ptd->hParentWnd, szMsg, szAppName, MB_OK | MB_ICONERROR );
+								ThreadMessageBox( ptd.hParentWnd, szMsg, szAppName, MB_OK | MB_ICONERROR );
 
 								// Free the buffer.
 								LocalFree( lpMsgBuf );
@@ -1159,20 +1234,20 @@ static unsigned __stdcall ConcatControlThread_Reader( void * pParams )
 	if ( ( dwError == ERROR_SUCCESS ) && !g_bCancel )
 	{
 		/* If we're copying onto the first file we selected, first of all delete the original */
-		if ( FileExistsAndWritable( ptd->sf.szToName ) )
+		if ( FileExistsAndWritable( ptd.sToName.c_str() ) )
 		{
 			/* Delete the original file */
-			DeleteFile( ptd->sf.szToName );
+			DeleteFile( ptd.sToName.c_str() );
 		}
 
 		/* Then rename the temporary file to have the desired name */
-		if ( !MoveFile( ptd->szTempName, ptd->sf.szToName ) )
+		if ( !MoveFile( ptd.sTempName.c_str(), ptd.sToName.c_str() ) )
 		{
 			/* Failed to rename the file - tell the user */
 			TCHAR szMsg[300];
 			LoadString( g_hResInst, IDS_FAIL_REN_TEMP, szMsg, _countof( szMsg ) );
 
-			ThreadMessageBox( ptd->hParentWnd, szMsg, ptd->szTempName, MB_OK | MB_ICONERROR );
+			ThreadMessageBox( ptd.hParentWnd, szMsg, ptd.sTempName.c_str(), MB_OK | MB_ICONERROR);
 		}
 
 		MessageBeep( MB_OK );
@@ -1180,7 +1255,7 @@ static unsigned __stdcall ConcatControlThread_Reader( void * pParams )
 	else
 	{
 		/* Delete the temporary file */
-		DeleteFile( ptd->szTempName );
+		DeleteFile( ptd.sTempName.c_str() );
 	}
 
 	if ( dwError != ERROR_SUCCESS )
@@ -1203,10 +1278,10 @@ static unsigned __stdcall ConcatControlThread_Reader( void * pParams )
 			TCHAR szMsg[1024];
 			//TCHAR szFmt[100];
 			//LoadString( g_hResInst, IDS_FAIL_JOIN, szFmt, _countof( szFmt ) );
-			wsprintf( szMsg, _T( "Failed to join temporary file '%s'.\n\n%s" ), ptd->szTempName, (LPCTSTR) lpMsgBuf );
+			wsprintf( szMsg, _T( "Failed to join temporary file '%s'.\n\n%s" ), ptd.sTempName.c_str(), (LPCTSTR) lpMsgBuf);
 
 			//		LoadString( g_hResInst, IDS_FAIL_JOIN_CAPTION, szFmt, _countof( szFmt ) );
-			ThreadMessageBox( ptd->hParentWnd, szMsg, szAppName, MB_OK | MB_ICONERROR );
+			ThreadMessageBox( ptd.hParentWnd, szMsg, szAppName, MB_OK | MB_ICONERROR );
 
 			// Free the buffer.
 			LocalFree( lpMsgBuf );
@@ -1217,17 +1292,17 @@ static unsigned __stdcall ConcatControlThread_Reader( void * pParams )
 	}
 
 	/* Tell the main UI thread that we've done (and to reset the UI) */
-	PostMessage( ptd->hParentWnd, UWM_WORKER_FINISHED, 0, reinterpret_cast<LPARAM>( ptd ) );
+	PostMessage( ptd.hParentWnd, UWM_WORKER_FINISHED, 0, reinterpret_cast<LPARAM>( &ptd ) );
 
 	return 0;
 }
 
-BOOL CALLBACK EnumChildProcToDisableSomeControls( HWND hWnd, LPARAM lParam )
+static BOOL CALLBACK EnumChildProcToDisableSomeControls( HWND hWnd, LPARAM lParam )
 {
 	if ( IsWindowEnabled( hWnd ) )
 	{
 		// Don't disable the Cancel/Close button (that's used to cancel the operation prematurely)
-		if ( GetWindowLong( hWnd, GWL_ID ) != IDCANCEL )
+		if ( GetWindowLongPtr( hWnd, GWLP_ID ) != IDCANCEL )
 		{
 			// See https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindoww for the predefined class names
 			TCHAR szClass[20];
@@ -1246,7 +1321,7 @@ BOOL CALLBACK EnumChildProcToDisableSomeControls( HWND hWnd, LPARAM lParam )
 				EnableWindow( hWnd, false );
 
 				/* Add the window handle to the vector that I use to re-enable them */
-				CMyThreadData* ptd = reinterpret_cast<CMyThreadData*>(lParam);
+				CommonThreadData * ptd = reinterpret_cast<CommonThreadData*>(lParam);
 
 				ptd->vhDisabledCtrls.push_back( hWnd );
 			}
@@ -1256,7 +1331,7 @@ BOOL CALLBACK EnumChildProcToDisableSomeControls( HWND hWnd, LPARAM lParam )
 	return TRUE;
 }
 
-static void UIDisable( const CMyThreadData & td ) noexcept
+static void UIDisable( const CommonThreadData & td ) noexcept
 {
 	/* Move the keyboard focus to the cancel button before we disable anything */
 	SendMessage( td.hParentWnd, WM_NEXTDLGCTL, (WPARAM) GetDlgItem( td.hParentWnd, IDCANCEL) , TRUE );
@@ -1276,20 +1351,20 @@ static void UIDisable( const CMyThreadData & td ) noexcept
 	EnableMenuItem( ::GetSystemMenu( td.hParentWnd, FALSE ), SC_CLOSE, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED );
 }
 
-static void ConcatEm( HWND hWnd, const SEL_FILES & sf, HWND hProgress )
+static void ConcatEm( HWND hWnd, ConcatThreadData & td, HWND hProgress )
 {
 	/* Create a temporary file for the result in the same directory as the final target file */
 	TCHAR szPath[ MAX_PATH ];
 	LPTSTR pFileNamePart;
 
-	if ( 0 != GetFullPathName( sf.szToName, MAX_PATH, szPath, &pFileNamePart ) )
+	if ( 0 != GetFullPathName( td.sToName.c_str(), MAX_PATH, szPath, &pFileNamePart ) )
 	{
 		/* Remove the file name from the path, to establish just the path to put the temporary file in! */
 		*pFileNamePart = '\0';
 	}
 	else
 	{
-		/* Something is wrong, but lets put the file in the temporary directory */
+		/* Something is wrong, but let's put the file in the temporary directory */
 		GetTempPath( MAX_PATH, szPath );
 	}
 
@@ -1298,21 +1373,18 @@ static void ConcatEm( HWND hWnd, const SEL_FILES & sf, HWND hProgress )
 	/* Create the temporary output file in the place where the user wants it */
 	if ( 0 != GetTempFileName( szPath, _T("JDD"), 0, szTempName ) )
 	{
-		CMyThreadData * ptd = new CMyThreadData();
-
-		ptd->sf = sf;
-		ptd->hProgress = hProgress;
-		ptd->hParentWnd = hWnd;
-		lstrcpyn( ptd->szTempName, szTempName, _countof( ptd->szTempName ) );
+		td.hProgress = hProgress;
+		td.hParentWnd = hWnd;
+		td.sTempName = szTempName;
 
 		/* Disable all the UI components while the thread runs */
-		UIDisable( *ptd );
+		UIDisable( td );
 
 		/* Clear the cancel flag */
 		InterlockedExchange( &g_bCancel, FALSE );
 
 		UINT tid;
-		::CHandle hThread( reinterpret_cast<HANDLE>( _beginthreadex( NULL, 0, ConcatControlThread_Reader, ptd, 0, &tid ) ) );
+		::CHandle hThread( reinterpret_cast<HANDLE>( _beginthreadex( NULL, 0, ConcatControlThread_Reader, &td, 0, &tid ) ) );
 	}
 	else
 	{
@@ -1330,11 +1402,6 @@ static void TMBHandler( HWND hDlg, LPARAM lParam ) noexcept
 
 	pmbp->RetVal = MessageBox( hDlg, pmbp->pText, pmbp->pCaption, pmbp->Type );
 	SetEvent( g_hTMBEvent );
-}
-
-bool CompProc( const basic_string<TCHAR> & f1, const basic_string<TCHAR> & f2 ) noexcept
-{
-	return lstrcmp( f1.c_str(), f2.c_str() ) < 0;
 }
 
 #if 1
@@ -1409,13 +1476,59 @@ static void AboutHandler( HWND hDlg, const optional<CMyRegData> & RegData ) noex
 
 static bool bUpdateChecked = false;
 
-BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
+class DlgDataCommon
 {
-	static SEL_FILES * pSf;
+public:
+	// Prevent inadvertent copying
+	//DlgDataCommon() = default;
+	//DlgDataCommon( const DlgDataCommon& ) = delete;
+	//DlgDataCommon operator=( const DlgDataCommon& ) = delete;
+
+	DlgDataCommon( const std::optional<CMyRegData>& RegData ) noexcept : m_RegData{RegData}
+	{
+	}
+	const std::optional<CMyRegData>& m_RegData;	// Reference to the registration data
+private:
+};
+
+class ConcatDlgData : public DlgDataCommon
+{
+public:
+	// Prevent inadvertent copying
+	//ConcatDlgData() = default;
+	//ConcatDlgData( const ConcatDlgData& ) = delete;
+	//ConcatDlgData operator=( const ConcatDlgData& ) = delete;
+
+	ConcatDlgData( const CSelPlusReg & spr ) : DlgDataCommon(spr.m_RegData)
+	{
+		// Take a copy of the file names
+		m_td.Files = spr.m_Files;
+	}
+	ConcatThreadData m_td;
+};
+
+class SplitDlgData : public DlgDataCommon
+{
+public:
+	// Prevent inadvertent copying
+	//SplitDlgData() = default;
+	//SplitDlgData( const SplitDlgData& ) = delete;
+	//SplitDlgData operator=( const SplitDlgData& ) = delete;
+
+	SplitDlgData( const CSelPlusReg& spr ) : DlgDataCommon( spr.m_RegData )
+	{
+		// Take a copy of the file names
+		m_td.Files = spr.m_Files;
+	}
+	SplitThreadData m_td;
+};
+
+INT_PTR CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
+{
 	static CPerfTimer tim;
 
-	/* Get the "this" class pointer - note this is not valid until first initialised in WM_INITDIALOG processing */
-//	LPCSHELLEXT pExt = reinterpret_cast<LPCSHELLEXT>(::GetWindowLongPtr( hDlg, DWLP_USER ));
+	/* Get this dialog's data class pointer - note this is not valid until first initialised in WM_INITDIALOG processing */
+	ConcatDlgData * pcdd = reinterpret_cast<ConcatDlgData*>(::GetWindowLongPtr( hDlg, DWLP_USER ));
 
 	switch ( message )
 	{
@@ -1433,9 +1546,8 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			/* Do the common operations to re-enable the UI aspects that were disabled during this operation */
 			{
 				{
-					CMyThreadData* ptd = reinterpret_cast<CMyThreadData*>(lParam);
+					ConcatThreadData * ptd = reinterpret_cast<ConcatThreadData*>(lParam);
 					UIEnable( *ptd );
-					delete ptd;
 				}
 
 				/* Disable this to match the original state */
@@ -1475,7 +1587,7 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			{
 				TCHAR szPath[_MAX_PATH];
 
-				lstrcpyn( szPath, pSf->pFiles->at(indx).c_str(), _countof(szPath) );
+				lstrcpyn( szPath, pcdd->m_td.Files.at(indx).c_str(), _countof(szPath) );
 				LPTSTR pPath = PathFindFileName( szPath );
 
 				{
@@ -1498,7 +1610,7 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 					HFONT hOldFont = (HFONT) SelectObject( hMemDC, hFont );
 
 					/* Remove characters from the start of the string until it'll fit the control width */
-					pPath++;
+					++pPath;
 					for ( int Len = lstrlen( pPath ); pPath < &szPath[_MAX_PATH]; pPath++, Len-- )
 					{
 						SIZE size;
@@ -1524,29 +1636,35 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 		break;
 
 	case WM_INITDIALOG:
-		/* lParam is a pointer to a SEL_FILES structure */
-		pSf = (SEL_FILES *) lParam;
-
 		{
-			bREGISTERED = IsRegisteredAndValid( *(pSf->pRegData), ProductCode::Concat );
+			// lParam is a pointer to the minimal data passed from the caller - the registration data and selected file names
+			// Copy those parts to this dialog's class data
+			pcdd = new ConcatDlgData( *((const CSelPlusReg*) lParam) );
 
-			const HWND hList = GetDlgItem( hDlg, IDC_COPY_LIST );
+			// Store the pointer to the data so that it's retrievable
+			::SetWindowLongPtr( hDlg, DWLP_USER, reinterpret_cast<LONG_PTR>(pcdd) );
 
+			bREGISTERED = IsRegisteredAndValid( pcdd->m_RegData, ProductCode::Concat );
+
+			// sort them before adding to the list box to ensure they're in some order - hopefully the optimum one given the names the split operation will have used.
 			if ( bREGISTERED )
 			{
 				/* sort the filenames before adding them to the listbox */
-				std::sort( pSf->pFiles->begin(), pSf->pFiles->end(), CompProc );
+				std::ranges::sort( pcdd->m_td.Files );
 			}
+
+			const HWND hList = GetDlgItem( hDlg, IDC_COPY_LIST );
 
 			/* Displaying the path items using ellipsis notation */
 			/* Add all the files to the list box */
-			for ( const auto & itName : *(pSf->pFiles) )
+			for ( const auto & itName : pcdd->m_td.Files )
 			{
 				ListBox_AddString( hList, itName.c_str() );
 			}
 
 			/* Copy the first name to be the destination name */
-			lstrcpy( pSf->szToName, pSf->pFiles->at(0).c_str() );
+			TCHAR szToName[_MAX_PATH];
+			lstrcpy( szToName, pcdd->m_td.Files.at(0).c_str() );
 
 			if ( bREGISTERED )
 			{
@@ -1559,14 +1677,14 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 				TCHAR szFName[_MAX_FNAME];
 				TCHAR szExt[_MAX_EXT];
 
-				_tsplitpath_s( pSf->szToName, szDrive, /*_countof(szDrive),*/ szDir, /*_countof(szDir),*/ szFName, /*_countof(szFName),*/ szExt/*, _countof(szExt)*/ );
+				_tsplitpath_s( szToName, szDrive, szDir, szFName, szExt );
 
 				/* Any numerical entries at the end of the extension are
 				 * likely to have been created by Split, so remove them.
 				 * The number of digits at the end are likely to be related
 				 * to the number of selected files, so just remove those many.
 				 */
-				size_t NumFiles = pSf->pFiles->size();
+				size_t NumFiles = pcdd->m_td.Files.size();
 				int NumDigits = 0;
 				do
 				{
@@ -1575,7 +1693,7 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 				}
 				while ( NumFiles > 0 );
 
-				int ExtLen = lstrlen( szExt );
+				auto ExtLen = wcslen( szExt );
 				LPTSTR pNameExt;
 
 				/* Do we have an extension? */
@@ -1588,10 +1706,10 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 				{
 					/* No - so use the filename instead */
 					pNameExt = szFName;
-					ExtLen = lstrlen( pNameExt );
+					ExtLen = wcslen( pNameExt );
 				}
 
-				for ( int indx = ExtLen - 1; indx >= ExtLen-NumDigits; indx-- )
+				for ( size_t indx = ExtLen - 1; indx >= ExtLen-NumDigits; --indx )
 				{
 					/* If the extension character is a digit */
 					if ( isdigit( pNameExt[indx] ) )
@@ -1606,10 +1724,10 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 					}
 				}
 
-				_tmakepath_s( pSf->szToName, szDrive, szDir, szFName, szExt );
+				_tmakepath_s( szToName, szDrive, szDir, szFName, szExt );
 			}
 
-			SetDlgItemText( hDlg, IDC_TO, pSf->szToName );
+			SetDlgItemText( hDlg, IDC_TO, szToName );
 		}
 		{
 			HWND hUp, hDown;
@@ -1650,7 +1768,7 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			{
 				bUpdateChecked = true;
 
-				RegCheckData rcd( *(pSf->pRegData), g_hInstance, ProductCode::Concat );
+				RegCheckData rcd( *(pcdd->m_RegData), g_hInstance, ProductCode::Concat );
 				CheckForUpdate( hDlg, true, rcd );
 			}
 		}
@@ -1658,6 +1776,9 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 
 	case WM_DESTROY:
 		CoUninitialize();
+		delete pcdd;
+		pcdd = nullptr;
+		::SetWindowLongPtr( hDlg, DWLP_USER, reinterpret_cast<LONG_PTR>(pcdd) );
 		break;
 
 #if 0
@@ -1743,7 +1864,7 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 
 				const int y = (lpdis->rcItem.bottom + lpdis->rcItem.top - tm.tmHeight) / 2;
 
-				ExtTextOut( lpdis->hDC, lpdis->rcItem.left-Excess, y, ETO_CLIPPED | ETO_OPAQUE, &lpdis->rcItem, szBuffer, lstrlen(szBuffer), NULL );
+				ExtTextOut( lpdis->hDC, lpdis->rcItem.left-Excess, y, ETO_CLIPPED | ETO_OPAQUE, &lpdis->rcItem, szBuffer, (UINT) wcslen(szBuffer), NULL );
 
 				/* Deselect inverse colours */
 				if ( bColourChanged )
@@ -1771,10 +1892,10 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			/* If the default OK button is disabled, we must be doing the Split operation */
 			if ( !IsWindowEnabled( GetDlgItem( hDlg, IDOK ) ) )
 			{
-                return true;
+                return TRUE;
 			}
 		}
-		return false;
+		return FALSE;
 
 	case WM_COMMAND:
 		switch( LOWORD( wParam ) )
@@ -1795,7 +1916,7 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 
 					/* Enable/Disable the up/down buttons accordingly */
 					const BOOL bUpEnabled = indx != 0;
-					const BOOL bDownEnabled = indx != (int) ( pSf->pFiles->size() - 1 );
+					const BOOL bDownEnabled = indx != (int) ( pcdd->m_td.Files.size() - 1 );
 
 					{
 						/* If we're disabling a control that currently has the focus, we must move the focus */
@@ -1843,15 +1964,15 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 
 					const size_t pos = CurItem - Offset;
 
-					Temp = pSf->pFiles->at(pos);
-					pSf->pFiles->at(pos) = pSf->pFiles->at(CurItem);
+					Temp = pcdd->m_td.Files.at(pos);
+					pcdd->m_td.Files.at(pos) = pcdd->m_td.Files.at(CurItem);
 
 					/* Re-display the item in the list box */
-					ListBox_InsertString( hList, pos, pSf->pFiles->at(pos).c_str() );
+					ListBox_InsertString( hList, pos, pcdd->m_td.Files.at(pos).c_str() );
 					ListBox_DeleteString( hList, pos+1 );
 
-					pSf->pFiles->at(CurItem) = Temp;
-					ListBox_InsertString( hList, CurItem, pSf->pFiles->at(CurItem).c_str() );
+					pcdd->m_td.Files.at(CurItem) = Temp;
+					ListBox_InsertString( hList, CurItem, pcdd->m_td.Files.at(CurItem).c_str() );
 					ListBox_DeleteString( hList, CurItem+1 );
 
 					/* Reset the current item */
@@ -1869,7 +1990,11 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 				const bool bShiftKeyDown = GetKeyState( VK_SHIFT ) & 0x8000 ? true : false;
 
 				/* Get the filename from the edit field */
-				GetDlgItemText( hDlg, IDC_TO, pSf->szToName, _countof( pSf->szToName ) );
+				{
+					TCHAR szToNameTmp[_MAX_PATH];
+					GetDlgItemText( hDlg, IDC_TO, szToNameTmp, _countof( szToNameTmp ) );
+					pcdd->m_td.sToName = szToNameTmp;
+				}
 
 				/* Check that the string is a valid file name */
 				// *** TO BE DONE???
@@ -1877,7 +2002,7 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 					BOOL bOk = FALSE;
 
 					/* If the file already exists, ask the user if they want to delete it */
-					if ( FileExistsAndWritable( pSf->szToName ) )
+					if ( FileExistsAndWritable( pcdd->m_td.sToName.c_str() ) )
 					{
 						/* File already exists message */
 						TCHAR szFmtMsg[256];
@@ -1885,7 +2010,7 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 						::LoadString( g_hResInst, IDS_ALREADY_EXISTSPROMPT, szFmtMsg, _countof(szFmtMsg) );
 
 						TCHAR szMsg[_MAX_PATH + _countof(szFmtMsg)];
-						wsprintf( szMsg, szFmtMsg, pSf->szToName );
+						wsprintf( szMsg, szFmtMsg, pcdd->m_td.sToName.c_str() );
 
 						if ( IDYES == MessageBox( hDlg, szMsg, szAppName, MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2 ) )
 						{
@@ -1897,7 +2022,7 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 						/* Get the current error code, because checking if the file exists will change it */
 						const DWORD dwError = GetLastError();
 
-						if ( FileExists( pSf->szToName ) )
+						if ( FileExists( pcdd->m_td.sToName.c_str() ) )
 						{
 							LPVOID lpMsgBuf;
 
@@ -1946,8 +2071,7 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 							tim.SetNotInUse();
 						}
 
-						ConcatEm( hDlg, *pSf, GetDlgItem( hDlg, IDC_PROGRESS ) );
-						//					EndDialog( hDlg, IDOK );
+						ConcatEm( hDlg, pcdd->m_td, GetDlgItem( hDlg, IDC_PROGRESS ) );
 					}
 				}
 			}
@@ -1967,7 +2091,7 @@ BOOL CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			break;
 
 		case IDC_ABOUT:
-			AboutHandler( hDlg, *pSf->pRegData );
+			AboutHandler( hDlg, pcdd->m_RegData );
 			break;
 
 		default:
@@ -2007,12 +2131,12 @@ static void SpecialIntToString( UINT Value, LPTSTR pBuffer, const int LastIndex 
 	}
 }
 
-static void CreateNumericalName( LPCTSTR pOrigName, const UINT FileNum, LPTSTR pFName, const int BuffSize, const int DigitWidth ) noexcept
+static void CreateNumericalName( LPCTSTR pOrigName, const UINT FileNum, LPTSTR pFName, size_t BuffSize, const int DigitWidth ) noexcept
 {
-	const int OrigLen = lstrlen( pOrigName );
+	const auto OrigLen = wcslen( pOrigName );
 
 	/* Copy the original string into the destn buffer */
-	lstrcpyn( pFName, pOrigName, BuffSize-1 );
+	wcsncpy_s( pFName, BuffSize-1, pOrigName, BuffSize-1 );
 
 	/* If we can, construct a string showing the range of file names we will create */
 	TCHAR szNumber[ _countof( _T("9999999999") )];
@@ -2073,7 +2197,7 @@ constexpr static int DetermineWidth( UINT Value ) noexcept
 	return( DigitWidth );
 }
 
-static void DisplayDestnFileNameRange( HWND hDlg, LPCTSTR pFName, const UINT NumFiles )
+static void DisplayDestnFileNameRange( HWND hDlg, LPCTSTR pFName, const UINT NumFiles ) noexcept
 {
 	const int DigitWidth = DetermineWidth( NumFiles );
 
@@ -2211,24 +2335,26 @@ public:
 	HandlePlusSize& operator=( HandlePlusSize&& ) = delete;
 };
 
-static DWORD CreateAndSizeDestinationFiles( const CMyThreadData & td, vector<HandlePlusSize> & vFiles )
+static DWORD CreateAndSizeDestinationFiles( const SplitThreadData & td, vector<HandlePlusSize> & vFiles ) noexcept
 {
 	DWORD dwError = ERROR_SUCCESS;
 
 	for ( UINT indx = 0;
-		( indx < td.sf.NumFiles ) && ( dwError == ERROR_SUCCESS ) && !g_bCancel;
+		( indx < vFiles.size() ) && ( dwError == ERROR_SUCCESS ) && !g_bCancel;
 		++indx )
 	{
-		/* Create the next file name */
-		CreateNumericalName( td.sf.szToName, indx+1, vFiles[indx].szFName, _countof( vFiles[indx].szFName ), td.DigitWidth );
+		auto & CurFile = vFiles[indx];
 
-		vFiles[indx].m_fh.Attach( CreateFile( vFiles[indx].szFName, GENERIC_WRITE | DELETE, 0, NULL,
+		/* Create the next file name */
+		CreateNumericalName( td.sToFileName.c_str(), indx + 1, CurFile.szFName, _countof( CurFile.szFName), td.DigitWidth);
+
+		CurFile.m_fh.Attach( CreateFile( CurFile.szFName, GENERIC_WRITE | DELETE, 0, NULL,
 											CREATE_NEW,
 											FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL ) );
 
 		/* Does the file already exist? */
 		/* If it does, ask if we can overwrite it */
-		if ( !vFiles[indx].m_fh.IsValid() )
+		if ( !CurFile.m_fh.IsValid() )
 		{
 			const DWORD dwErr = GetLastError();
 
@@ -2238,11 +2364,11 @@ static DWORD CreateAndSizeDestinationFiles( const CMyThreadData & td, vector<Han
 				TCHAR szFmt[100];
 				LoadString( g_hResInst, IDS_OVERWRITE_PROMPT, szFmt, _countof( szFmt ) );
 
-				wsprintf( szMsg, szFmt/*_T("The file \"%s\" already exists.\n\nDo you want to overwrite it?")*/, static_cast<LPCTSTR>( vFiles[indx].szFName ) );
+				wsprintf( szMsg, szFmt/*_T("The file \"%s\" already exists.\n\nDo you want to overwrite it?")*/, static_cast<LPCTSTR>(CurFile.szFName ) );
 
 				if ( IDYES == ThreadMessageBox( td.hParentWnd, szMsg, szAltName, MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2 ) )
 				{
-					vFiles[indx].m_fh.Attach( CreateFile( vFiles[indx].szFName, GENERIC_WRITE, 0, NULL,
+					CurFile.m_fh.Attach( CreateFile( CurFile.szFName, GENERIC_WRITE, 0, NULL,
 													CREATE_ALWAYS,
 													FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL ) );
 				}
@@ -2254,27 +2380,22 @@ static DWORD CreateAndSizeDestinationFiles( const CMyThreadData & td, vector<Han
 			}
 		}
 
-		if ( vFiles[indx].m_fh.IsValid() )
+		if ( CurFile.m_fh.IsValid() )
 		{
 			/* We can determine the sizes of the split files easily. All but the last
 			 * one are the split size, and the last one is the remainder.
 			 */
-			if ( indx < td.sf.NumFiles -1 )
-			{
-				vFiles[indx].m_SizeToCopy = td.sf.SplitSize;
-			}
-			else
-			{
-				vFiles[indx].m_SizeToCopy = td.SrcFileSize - (td.sf.NumFiles-1)*td.sf.SplitSize;
-			}
+			CurFile.m_SizeToCopy = indx < td.NumFiles -1 ?
+										td.SplitSize :
+										td.SrcFileSize - (td.NumFiles-1)*td.SplitSize;
 
 			/* Pre-size the file - to ensure we don't run out of space, and it may be faster overall */
-			if ( SetFilePointerEx( vFiles[indx].m_fh, *( reinterpret_cast<LARGE_INTEGER *>( &( vFiles[indx].m_SizeToCopy ) ) ), NULL, FILE_BEGIN ))
+			if ( SetFilePointerEx( CurFile.m_fh, *( reinterpret_cast<LARGE_INTEGER *>( &(CurFile.m_SizeToCopy ) ) ), NULL, FILE_BEGIN ))
 			{
-				if ( SetEndOfFile( vFiles[indx].m_fh ) )
+				if ( SetEndOfFile( CurFile.m_fh ) )
 				{
 					/* Back to the start */
-					if ( SetFilePointer( vFiles[indx].m_fh, 0, NULL, FILE_BEGIN ) != INVALID_SET_FILE_POINTER )
+					if ( SetFilePointer( CurFile.m_fh, 0, NULL, FILE_BEGIN ) != INVALID_SET_FILE_POINTER )
 					{
 						/* All should be OK */
 					}
@@ -2309,19 +2430,19 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 {
 	size_t CurrentBuffer = 0;
 
-	/* Initially the buffers are signaled as empty */
-	for ( size_t i = 0; i < NUM_BUFFERS; ++i )
+	/* Initially the buffers are signalled as empty */
+	for ( auto &tb : g_TransBuffers )
 	{
-		g_BufferEmptied[i].SetEvent();
-
-		g_TransBuffers[i].InitBuffer( Granularity );
+		tb.SetBufferEmptied();
+		tb.InitBuffer( Granularity );
 	}
 
 	/* Start the split writer thread */
 	UINT tid;
 	::CHandle hThread( reinterpret_cast<HANDLE>( _beginthreadex( NULL, 0, CommonWriterThread, NULL, 0, &tid ) ) );
 
-	CMyThreadData * ptd = static_cast<CMyThreadData *>(pParams);
+	// Get passed a reference (non-null pointer) to the thread data
+	SplitThreadData& ptd = *(static_cast<SplitThreadData*>(pParams));
 
 	DWORD dwError = ERROR_SUCCESS;
 
@@ -2333,12 +2454,12 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 	 * The first creates and sizes the files, and retains the file handle information,
 	 * the second loop does the actual copying.
 	 */
-	vector<HandlePlusSize> vSplitFiles( ptd->sf.NumFiles );
+	vector<HandlePlusSize> vSplitFiles( ptd.NumFiles );
 
 	/* Open all the destination files for writing.
 	 * The collection of file handles returned are all valid, or the vector is empty
 	 */
-	dwError = CreateAndSizeDestinationFiles( *ptd, vSplitFiles );
+	dwError = CreateAndSizeDestinationFiles( ptd, vSplitFiles );
 
 	if ( dwError == ERROR_SUCCESS )
 	{
@@ -2351,7 +2472,7 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 
 //?			const size_t indx = distance( vSplitFiles.begin(), it );
 
-			PostMessage( ptd->hParentWnd, UWM_UPDATE_PROGRESS, indx, 0 );
+			PostMessage( ptd.hParentWnd, UWM_UPDATE_PROGRESS, indx, 0 );
 
 			{
 				ULARGE_INTEGER SizeRemaining;
@@ -2361,18 +2482,18 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 				{
 					/* Update the progress control */
 					{
-					const int ProgPos = static_cast<int>( ( ( ptd->SrcFileSize- ptd->SrcRemaining ) * 0x8000)/ptd->SrcFileSize );
+						//TODO Why * 0x8000 David?
+					const int ProgPos = static_cast<int>( ( ( ptd.SrcFileSize - ptd.SrcRemaining ) * 0x8000)/ptd.SrcFileSize );
 
-					PostMessage( ptd->hProgress, PBM_SETPOS, ProgPos, 0 );
+					PostMessage( ptd.hProgress, PBM_SETPOS, ProgPos, 0 );
 					}
 
 					/* Handle the next chunk from the source file */
 
-					/* Wait for the buffer to be empty */
-					CSingleLock WriterWait( &g_BufferEmptied[CurrentBuffer] );
-					WriterWait.Lock();
+					CTransferBuffer& rtb = g_TransBuffers[CurrentBuffer];
 
-					CTransferBuffer & rtb = g_TransBuffers[CurrentBuffer];
+					/* Wait for the buffer to be empty */
+					rtb.WaitForEmpty();
 
 					/* Was there any error from the last write? */
 					if ( rtb.WriteErrorValue == ERROR_SUCCESS )
@@ -2390,19 +2511,30 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 							/* Note: the size remaining at this point must be < a DWORD */
 							ThisBlockSize = SizeRemaining.LowPart;
 						}
+#ifdef _DEBUG
+						TRACE( "ReadFile %d\n", CurrentBuffer );
+						LARGE_INTEGER startCount;
+						QueryPerformanceCounter( &startCount );
+#endif
 
 						DWORD dwBytesRead;
-						if ( ReadFile( ptd->hSrcFile, rtb.GetBuffer(), ThisBlockSize, &dwBytesRead, NULL ) )
+						if ( ReadFile( ptd.hSrcFile, rtb.GetBuffer(), ThisBlockSize, &dwBytesRead, NULL ) )
 						{
+#ifdef _DEBUG
+							LARGE_INTEGER endCount;
+							QueryPerformanceCounter( &endCount );
+							TRACE( "ReadFile %d done in %d\n", CurrentBuffer, endCount.QuadPart - startCount.QuadPart );
+#endif
+
 							/* Save the file handle & data length with the buffer */
 							rtb.fh = it->m_fh;
 							rtb.SizeOfData = dwBytesRead;
 
 							/* Signal to the writer that there's something waiting for it */
-							g_BufferFilled[CurrentBuffer].SetEvent();
+							rtb.SetBufferFilled();
 
 							/* Use the next buffer */
-							CurrentBuffer = (CurrentBuffer + 1) % NUM_BUFFERS;
+							CurrentBuffer = (CurrentBuffer + 1) % _countof( g_TransBuffers );
 						}
 						else
 						{
@@ -2410,7 +2542,7 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 						}
 
 						SizeRemaining.QuadPart -= ThisBlockSize;
-						ptd->SrcRemaining -= ThisBlockSize;
+						ptd.SrcRemaining -= ThisBlockSize;
 					}
 					else
 					{
@@ -2419,7 +2551,7 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 				}
 
 				/* Do the source file name for the batch command line */
-				if ( ptd->hBatchFile.IsValid() )
+				if ( ptd.hBatchFile.IsValid() )
 				{
 					/* For the batch file, we only want the filename (no path) */
 					TCHAR szName[_MAX_FNAME];
@@ -2431,16 +2563,16 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 
 					/* The filename needs quoting to cater for names with spaces */
 					DWORD dwBytesWritten;
-					WriteFile( ptd->hBatchFile, "\"", 1, &dwBytesWritten, NULL );
+					WriteFile( ptd.hBatchFile, "\"", 1, &dwBytesWritten, NULL );
 
 					CT2CA szAFN( szFileName );
-					WriteFile( ptd->hBatchFile, szAFN, lstrlen( szFileName ), &dwBytesWritten, NULL );
+					WriteFile( ptd.hBatchFile, szAFN, (DWORD) wcslen( szFileName ), &dwBytesWritten, NULL );
 
-					WriteFile( ptd->hBatchFile, "\"", 1, &dwBytesWritten, NULL );
+					WriteFile( ptd.hBatchFile, "\"", 1, &dwBytesWritten, NULL );
 
 					if ( it != vSplitFiles.end()-1 )
 					{
-						WriteFile( ptd->hBatchFile, "+", 1, &dwBytesWritten, NULL );
+						WriteFile( ptd.hBatchFile, "+", 1, &dwBytesWritten, NULL );
 					}
 				}
 			}
@@ -2464,33 +2596,33 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 	if ( !g_bCancel && ( dwError == ERROR_SUCCESS ) )
 	{
 		/* Write the target file name to the batch file */
-		if ( ptd->hBatchFile.IsValid() )
+		if ( ptd.hBatchFile.IsValid() )
 		{
 			DWORD dwBytesWritten;
 
-			WriteFile( ptd->hBatchFile, " ", 1, &dwBytesWritten, NULL );
+			WriteFile( ptd.hBatchFile, " ", 1, &dwBytesWritten, NULL );
 
 			/* For the batch file, we only want the filename (no path) */
 			TCHAR szName[_MAX_FNAME];
 			TCHAR szExt[_MAX_EXT];
 			TCHAR szFileName[_MAX_PATH];
 
-			_tsplitpath_s( ptd->sf.pFiles->at(0).c_str(), NULL, 0, NULL, 0, szName, _countof(szName), szExt, _countof(szExt) );
+			_tsplitpath_s( ptd.Files.at(0).c_str(), NULL, 0, NULL, 0, szName, _countof(szName), szExt, _countof(szExt) );
 			_tmakepath_s( szFileName, NULL, NULL, szName, szExt );
 
 			/* Quote the name to cater for long file names with spaces */
-			WriteFile( ptd->hBatchFile, "\"", 1, &dwBytesWritten, NULL );
+			WriteFile( ptd.hBatchFile, "\"", 1, &dwBytesWritten, NULL );
 
 			CT2CA szAFN( szFileName );
-			WriteFile( ptd->hBatchFile, szAFN, lstrlen( szFileName ), &dwBytesWritten, NULL );
+			WriteFile( ptd.hBatchFile, szAFN, (DWORD) wcslen( szFileName ), &dwBytesWritten, NULL );
 
-			WriteFile( ptd->hBatchFile, "\"", 1, &dwBytesWritten, NULL );
+			WriteFile( ptd.hBatchFile, "\"", 1, &dwBytesWritten, NULL );
 		}
 
 		/* Mark all the created split files to be retained */
-		for ( vector<HandlePlusSize>::iterator it = vSplitFiles.begin(); it != vSplitFiles.end(); ++it )
+		for ( auto & it : vSplitFiles )
 		{
-			it->m_DeleteOnDestroy = false;
+			it.m_DeleteOnDestroy = false;
 		}
 
 		MessageBeep( MB_OK );
@@ -2520,7 +2652,7 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 
 			wsprintf( szMsg, szFmt, (LPCTSTR) lpMsgBuf );
 
-			ThreadMessageBox( ptd->hParentWnd, szMsg, szAltName, MB_OK | MB_ICONERROR );
+			ThreadMessageBox( ptd.hParentWnd, szMsg, szAltName, MB_OK | MB_ICONERROR );
 
 			// Free the buffer.
 			LocalFree( lpMsgBuf );
@@ -2536,12 +2668,12 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 	}
 
 	/* Tell the main UI thread that we've done (and to reset the UI) */
-	PostMessage( ptd->hParentWnd, UWM_WORKER_FINISHED, 0, reinterpret_cast<LPARAM>( ptd ) );
+	PostMessage( ptd.hParentWnd, UWM_WORKER_FINISHED, 0, reinterpret_cast<LPARAM>( &ptd ) );
 
 	return dwError;
 }
 
-static void SplitEm( HWND hWnd, const SEL_FILES & osf, HWND hProgress )
+static void SplitEm( HWND hWnd, SplitThreadData & osf, HWND hProgress, bool bCreateBatchFile )
 {
 	/* On exit from the dialog the following are set:
 		* pFiles[0] is the original file name
@@ -2550,17 +2682,14 @@ static void SplitEm( HWND hWnd, const SEL_FILES & osf, HWND hProgress )
 		* SplitSize is the size of each file
 		*/
 
-	/* Take a copy of the passed SEL_FILES data so we can modify the data without affecting the caller's copy */
-	SEL_FILES sf = osf;
-
 	/* Create the DOS batch file */
 	CFileHandle hBatchFile;
 	DWORD dwBytesWritten;
 
-	if ( sf.bBatchFile )
+	if ( bCreateBatchFile )
 	{
 		/* Create the file */
-		hBatchFile.Attach( CreateFile( sf.szBatchName, GENERIC_WRITE, 0, NULL, CREATE_NEW,
+		hBatchFile.Attach( CreateFile( osf.sBatchName.c_str(), GENERIC_WRITE, 0, NULL, CREATE_NEW,
 						FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL ) );
 
 		if ( !hBatchFile.IsValid() )
@@ -2573,11 +2702,11 @@ static void SplitEm( HWND hWnd, const SEL_FILES & osf, HWND hProgress )
 				TCHAR szFmt[100];
 				LoadString( g_hResInst, IDS_OVERWRITE_BAT, szFmt, _countof( szFmt ) );
 				wsprintf( szMsg, szFmt/*_T("The batch file \"%s\" already exists.\n\nDo you want to overwrite it?")*/,
-							static_cast<LPCTSTR>( sf.szBatchName ) );
+							osf.sBatchName.c_str() );
 
 				if ( IDYES == MessageBox( hWnd, szMsg, szAltName, MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2 ) )
 				{
-					hBatchFile.Attach( CreateFile( sf.szBatchName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+					hBatchFile.Attach( CreateFile( osf.sBatchName.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
 									FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL ) );
 				}
 			}
@@ -2591,12 +2720,12 @@ static void SplitEm( HWND hWnd, const SEL_FILES & osf, HWND hProgress )
 
 
 	/* Open the original file for reading */
-	CFileHandle hSrcFile( CreateFile( sf.pFiles->at(0).c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING,
+	CFileHandle hSrcFile( CreateFile( osf.Files.at(0).c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING,
 					FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL ) );
 
 	if ( hSrcFile.IsValid() )
 	{
-		const int DigitWidth = DetermineWidth( sf.NumFiles );
+		const int DigitWidth = DetermineWidth( osf.NumFiles );
 
 		/* Form the batch command */
 		if ( hBatchFile.IsValid() )
@@ -2604,10 +2733,8 @@ static void SplitEm( HWND hWnd, const SEL_FILES & osf, HWND hProgress )
 			WriteFile( hBatchFile, "copy /b ", sizeof("copy /b ")-1, &dwBytesWritten, NULL );
 		}
 
-		ULARGE_INTEGER SrcFileSize;
-		SrcFileSize.LowPart = GetFileSize( hSrcFile, &SrcFileSize.HighPart );
-
-		if ( !( ( SrcFileSize.LowPart == -1 ) && ( GetLastError() != NO_ERROR)) )
+		LARGE_INTEGER SrcFileSize;
+		if ( GetFileSizeEx( hSrcFile, &SrcFileSize ) )
 		{
 			UINT64 SrcRemaining;
 			SrcRemaining = SrcFileSize.QuadPart;
@@ -2615,26 +2742,24 @@ static void SplitEm( HWND hWnd, const SEL_FILES & osf, HWND hProgress )
 			/* Initialise the progress control range */
 			SendMessage( hProgress, PBM_SETRANGE32, 0, 0x8000 );
 
-			/* Allocate the data to pass to the thread */
-			CMyThreadData * ptd = new CMyThreadData();
-			ptd->DigitWidth = DigitWidth;
-			ptd->hBatchFile.Attach( hBatchFile.Detach() );
-			ptd->hParentWnd = hWnd;
-			ptd->hProgress = hProgress;
-			ptd->hSrcFile.Attach( hSrcFile.Detach() );
-			ptd->sf = sf;
-			ptd->SrcFileSize = SrcFileSize.QuadPart;
-			ptd->SrcRemaining = SrcRemaining;
+			/* Fill in the data to pass to the thread */
+			osf.DigitWidth = DigitWidth;
+			osf.hBatchFile.Attach( hBatchFile.Detach() );
+			osf.hParentWnd = hWnd;
+			osf.hProgress = hProgress;
+			osf.hSrcFile.Attach( hSrcFile.Detach() );
+			osf.SrcFileSize = SrcFileSize.QuadPart;
+			osf.SrcRemaining = SrcRemaining;
 
 			/* Disable all the UI components while the thread runs */
-			UIDisable( *ptd );
+			UIDisable( osf );
 
 			/* Clear the cancel flag */
 			InterlockedExchange( &g_bCancel, FALSE );
 
 			/* Start the split worker thread */
 			UINT tid;
-			::CHandle hThread( reinterpret_cast<HANDLE>( _beginthreadex( NULL, 0, SplitControlThread_Reader, ptd, 0, &tid ) ) );
+			::CHandle hThread( reinterpret_cast<HANDLE>( _beginthreadex( NULL, 0, SplitControlThread_Reader, &osf, 0, &tid ) ) );
 		}
 	}
 	else
@@ -2658,7 +2783,7 @@ static void SplitEm( HWND hWnd, const SEL_FILES & osf, HWND hProgress )
 		TCHAR szMsg[1024];
 		TCHAR szFmt[100];
 		LoadString( g_hResInst, IDS_FAIL_OPEN, szFmt, _countof( szFmt ) );
-		wsprintf( szMsg, szFmt, (LPCTSTR) sf.pFiles->at(0).c_str(), (LPCTSTR) lpMsgBuf );
+		wsprintf( szMsg, szFmt, (LPCTSTR) osf.Files.at(0).c_str(), (LPCTSTR) lpMsgBuf );
 
 		MessageBox( hWnd, szMsg, szAltName, MB_OK | MB_ICONERROR );
 
@@ -2672,7 +2797,7 @@ enum eDrives { CommonDriveSizes, LocalRemovableDriveSizes };
 /* Array of sizes for the items in the split combo list - because the combo per-item data is limited to 32-bit) */
 static vector<UINT64> g_vItemSizes;
 
-static const struct
+static const struct PresetSizes
 {
 	const TCHAR * Description;
 	unsigned __int64 Size;
@@ -2827,10 +2952,11 @@ static void MatchSizeToCBEntry( HWND hDlg, UINT64 SizeValue ) noexcept
 	ShowWindow( GetDlgItem( hDlg, IDC_KB_IND ), NumItems < 0 ? SW_SHOWNA : SW_HIDE );
 }
 
-BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
+INT_PTR CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 {
-	/* Maintains a pointer to the buffer passed in by the caller */
-	static SEL_FILES * pSf;
+	/* Get this dialog's data class pointer - note this is not valid until first initialised in WM_INITDIALOG processing */
+	SplitDlgData* psdd = reinterpret_cast<SplitDlgData*>(::GetWindowLongPtr( hDlg, DWLP_USER ));
+
 	static CPerfTimer tim;
 
 	switch ( message )
@@ -2849,9 +2975,8 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			/* Do the common operations to re-enable the UI aspects that were disabled during this operation */
 			{
 				{
-					CMyThreadData* ptd = reinterpret_cast<CMyThreadData*>(lParam);
+					SplitThreadData * ptd = reinterpret_cast<SplitThreadData*>(lParam);
 					UIEnable( *ptd );
-					delete ptd;
 				}
 
 				/* Match the corresponding enable of this item so things look matched if the operation is cancelled */
@@ -2881,11 +3006,15 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 		break;
 
 	case WM_INITDIALOG:
-		/* lParam is a pointer to a SEL_FILES structure */
-		pSf = (SEL_FILES *) lParam;
+		// lParam is a pointer to the minimal data passed from the caller - the registration data and selected file names
+		// Copy those parts to this dialog's class data
+		psdd = new SplitDlgData( *((const CSelPlusReg*) lParam) );
+
+		// Store the pointer to the data so that it's retrievable
+		::SetWindowLongPtr( hDlg, DWLP_USER, reinterpret_cast<LONG_PTR>(psdd) );
 
 		{
-			bREGISTERED = IsRegisteredAndValid( *(pSf->pRegData), ProductCode::Concat );
+			bREGISTERED = IsRegisteredAndValid( *(psdd->m_RegData), ProductCode::Concat );
 
 			SETTINGS ss;
 
@@ -2915,18 +3044,20 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			/* Fill the size combo box now we've got the radio button option */
 			PopulateSizeList( GetDlgItem( hDlg, IDC_SIZE_CB ), SizeButton == IDC_COMMON_RB ? CommonDriveSizes : LocalRemovableDriveSizes );
 
-			pSf->SplitSize = ss.Size;
+			psdd->m_td.SplitSize = ss.Size;
 
 			/* Set the default batch file name */
 			{
 				TCHAR szDrive[_MAX_DRIVE];
 				TCHAR szDir[_MAX_DIR];
 
-				_tsplitpath_s( pSf->pFiles->at(0).c_str(), szDrive, _countof(szDrive), szDir, _countof(szDir), NULL, 0, NULL, 0 );
+				_tsplitpath_s( psdd->m_td.Files.at(0).c_str(), szDrive, _countof(szDrive), szDir, _countof(szDir), NULL, 0, NULL, 0 );
 
-				_tmakepath_s( pSf->szBatchName, szDrive, szDir, _T("concat"), _T("bat") );
+				TCHAR szBatchName[_MAX_PATH];
+				_tmakepath_s( szBatchName, szDrive, szDir, _T("concat"), _T("bat"));
+				psdd->m_td.sBatchName = szBatchName;
 
-				SetDlgItemText( hDlg, IDC_BATCH_NAME, pSf->szBatchName );
+				SetDlgItemText( hDlg, IDC_BATCH_NAME, psdd->m_td.sBatchName.c_str() );
 			}
 
 			/* Disable the batch facility */
@@ -2943,33 +3074,40 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			{
 				{
 					/* Open the file for reading */
-					CFileHandle hFile( CreateFile( pSf->pFiles->at(0).c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL ) );
+					CFileHandle hFile( CreateFile( psdd->m_td.Files.at(0).c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL ) );
 
 					if ( hFile.IsValid() )
 					{
-						ULARGE_INTEGER Size;
-						Size.LowPart = GetFileSize( hFile, &Size.HighPart );
-						pSf->FSize = Size.QuadPart;
+						LARGE_INTEGER Size;
+						if ( GetFileSizeEx( hFile, &Size ) )
+						{
+							psdd->m_td.FSize = Size.QuadPart;
 
-						/* Calculate the number of files it will take to split
-						 * the source file into the designated size chunks
-						 */
-						pSf->NumFiles = UpdateNumberOfFiles( hDlg, pSf->FSize, pSf->SplitSize );
+							/* Calculate the number of files it will take to split
+							 * the source file into the designated size chunks
+							 */
+							psdd->m_td.NumFiles = UpdateNumberOfFiles( hDlg, psdd->m_td.FSize, psdd->m_td.SplitSize );
+						}
+						else
+						{
+							// Never expect this to happen
+							_ASSERT( false );
+						}
 					}
 					else
 					{
 						ResMessageBox( hDlg, IDS_DONT_CONTINUE, szAltName, MB_OK | MB_ICONSTOP );
-						pSf->FSize = 0;
+						psdd->m_td.FSize = 0;
 					}
 				}
 
-				lstrcpy( pSf->szToName, pSf->pFiles->at(0).c_str() );
+				psdd->m_td.sToFileName = psdd->m_td.Files.at(0);
 
 				/* Get the "to" range of names populated.
 				 * Needs to be done here to cater for the initial situation where no removable drives are available and the size
 				 * is not a preset one - this condition doesn't give rise to an event that eventually calls this method elsewhere.
 				 */
-				DisplayDestnFileNameRange( hDlg, pSf->szToName, pSf->NumFiles );
+				DisplayDestnFileNameRange( hDlg, psdd->m_td.sToFileName.c_str(), psdd->m_td.NumFiles );
 
 				/* Fill in the original file size */
 				{
@@ -3024,7 +3162,7 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 						TCHAR szFmtValue[30];
 						{
 							TCHAR szValue[30];
-							_ui64tot_s( pSf->FSize, szValue, _countof(szValue), 10 );
+							_ui64tot_s( psdd->m_td.FSize, szValue, _countof(szValue), 10 );
 
 							GetNumberFormat( LOCALE_USER_DEFAULT, 0, szValue, &nf, szFmtValue, _countof(szFmtValue) );
 						}
@@ -3058,7 +3196,7 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 		}
 
 		/* Match the current size to something in the combo box to display something in the edit field */
-		MatchSizeToCBEntry( hDlg, pSf->SplitSize );
+		MatchSizeToCBEntry( hDlg, psdd->m_td.SplitSize );
 
 		CenterDialog( hDlg );
 
@@ -3068,11 +3206,17 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			{
 				bUpdateChecked = true;
 
-				RegCheckData rcd( *(pSf->pRegData), g_hInstance, ProductCode::Concat );
+				RegCheckData rcd( *(psdd->m_RegData), g_hInstance, ProductCode::Concat );
 				CheckForUpdate( hDlg, true, rcd );
 			}
 		}
 		break;
+
+		case WM_DESTROY:
+			delete psdd;
+			psdd = nullptr;
+			::SetWindowLongPtr( hDlg, DWLP_USER, reinterpret_cast<LONG_PTR>(psdd) );
+			break;
 
 	case WM_SYSCOMMAND:
 		if ( ( wParam & 0x0FFF0 ) == SC_CLOSE )
@@ -3080,10 +3224,10 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			/* If the default OK button is disabled, we must be doing the Split operation */
 			if ( !IsWindowEnabled( GetDlgItem( hDlg, IDOK ) ) )
 			{
-                return true;
+                return TRUE;
 			}
 		}
-		return false;
+		return FALSE;
 
 	case WM_COMMAND:
 		switch( LOWORD( wParam ) )
@@ -3096,15 +3240,18 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 
 				ZeroMemory( &ofn, sizeof( ofn ) );
 
+				TCHAR szBatchName[_MAX_PATH];
+				lstrcpy( szBatchName, psdd->m_td.sBatchName.c_str() );
+
 				ofn.lStructSize = sizeof( ofn ); 
 				ofn.hwndOwner = hDlg;
-				ofn.lpstrFile = pSf->szBatchName; 
-				ofn.nMaxFile = _countof( pSf->szBatchName ); 
+				ofn.lpstrFile = szBatchName;
+				ofn.nMaxFile = _countof( szBatchName ); 
 				ofn.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY;
 				
 				if ( GetSaveFileName( &ofn ) )
 				{
-					SetDlgItemText( hDlg, IDC_BATCH_NAME, pSf->szBatchName );
+					SetDlgItemText( hDlg, IDC_BATCH_NAME, szBatchName );
 				}
 			}
 			break;
@@ -3116,15 +3263,18 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 
 				ZeroMemory( &ofn, sizeof( ofn ) );
 
+				TCHAR szToName[_MAX_PATH];
+				lstrcpy( szToName, psdd->m_td.sToFileName.c_str() );
+
 				ofn.lStructSize = sizeof( ofn ); 
 				ofn.hwndOwner = hDlg;
-				ofn.lpstrFile = pSf->szToName; 
-				ofn.nMaxFile = _countof( pSf->szToName ); 
+				ofn.lpstrFile = szToName; 
+				ofn.nMaxFile = _countof( szToName ); 
 				ofn.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY;
 				
 				if ( GetSaveFileName( &ofn ) )
 				{
-					DisplayDestnFileNameRange( hDlg, pSf->szToName, pSf->NumFiles );
+					DisplayDestnFileNameRange( hDlg, szToName, psdd->m_td.NumFiles );
 				}
 			}
 			break;
@@ -3134,16 +3284,15 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 				/* Was the shift key down (to start timing)? */
 				const bool bShiftKeyDown = GetKeyState( VK_SHIFT ) & 0x8000 ? true : false;
 
-				{
-				pSf->bBatchFile = Button_GetCheck( GetDlgItem( hDlg, IDC_CREATE_COPY_FILE ) ) == BST_CHECKED;
+				const bool bCreateBatchFile = Button_GetCheck( GetDlgItem( hDlg, IDC_CREATE_COPY_FILE ) ) == BST_CHECKED;
 
+				// If registered, save the current spit size value so the UI defaults to it when next invoked.
 				if ( bREGISTERED )
 				{
 					SETTINGS ss;
-					ss.Size = pSf->SplitSize;
+					ss.Size = psdd->m_td.SplitSize;
 
 					SaveSettings( ss );
-				}
 				}
 
 				EnableWindow( GetDlgItem( hDlg, IDC_SPLITTING ), true );
@@ -3162,7 +3311,7 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 					tim.SetNotInUse();
 				}
 
-				SplitEm( hDlg, *pSf, GetDlgItem( hDlg, IDC_PROGRESS ) );
+				SplitEm( hDlg, psdd->m_td, GetDlgItem( hDlg, IDC_PROGRESS ), bCreateBatchFile );
 			}
 			break;
 
@@ -3180,7 +3329,7 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			break;
 
 		case IDC_ABOUT:
-			AboutHandler( hDlg, *pSf->pRegData );
+			AboutHandler( hDlg, *psdd->m_RegData );
 			break;
 
 		/* Handle the 2 radio button click events to toggle the entries in the combo box */
@@ -3190,7 +3339,7 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			{
 				PopulateSizeList( GetDlgItem( hDlg, IDC_SIZE_CB ), LOWORD( wParam ) == IDC_COMMON_RB ? CommonDriveSizes : LocalRemovableDriveSizes );
 				/* Match the current size to something in the combo box to display something in the edit field */
-				MatchSizeToCBEntry( hDlg, pSf->SplitSize );
+				MatchSizeToCBEntry( hDlg, psdd->m_td.SplitSize );
 			}
 			break;
 
@@ -3206,7 +3355,7 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 					const UINT64 Size = g_vItemSizes[SelItem];
 					if ( Size != 0 )
 					{
-						pSf->SplitSize = Size;
+						psdd->m_td.SplitSize = Size;
 					}
 
 					/* Hide the KB static text indicator */
@@ -3227,7 +3376,7 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 
 				if ( Size != 0 )
 				{
-					pSf->SplitSize = Size;
+					psdd->m_td.SplitSize = Size;
 				}
 
 				/* Show the KB static text indicator for custom sizes */
@@ -3241,8 +3390,8 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 			/* Calculate the number of files it will take to split
              * the source file into the designated size chunks
 			 */
-			pSf->NumFiles = UpdateNumberOfFiles( hDlg, pSf->FSize, pSf->SplitSize );
-			DisplayDestnFileNameRange( hDlg, pSf->szToName, pSf->NumFiles );
+			psdd->m_td.NumFiles = UpdateNumberOfFiles( hDlg, psdd->m_td.FSize, psdd->m_td.SplitSize );
+			DisplayDestnFileNameRange( hDlg, psdd->m_td.sToFileName.c_str(), psdd->m_td.NumFiles );
 			break;
 
 		default:
@@ -3266,9 +3415,9 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 //				lstrcpyn( szPath, pSf->pFiles->at(0).c_str(), _countof(szPath) );
 
 				/* Construct the numerical file we're doing now */
-				const int DigitWidth = DetermineWidth( pSf->NumFiles );
+				const int DigitWidth = DetermineWidth( psdd->m_td.NumFiles );
 
-				CreateNumericalName( pSf->szToName, indx+1, szPath, _countof( szPath ), DigitWidth );
+				CreateNumericalName( psdd->m_td.sToFileName.c_str(), indx+1, szPath, _countof( szPath ), DigitWidth );
 
 				LPTSTR pPath = PathFindFileName( szPath );
 
@@ -3292,11 +3441,11 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 						HFONT hOldFont = (HFONT) SelectObject( hMemDC, hFont );
 
 						/* Remove characters from the start of the string until it'll fit the control width */
-						pPath++;
-						for ( int Len = lstrlen( pPath ); pPath < &szPath[_MAX_PATH]; pPath++, Len-- )
+						++pPath;
+						for ( auto Len = wcslen( pPath ); pPath < &szPath[_MAX_PATH]; pPath++, Len-- )
 						{
 							SIZE size;
-							GetTextExtentPoint32( hMemDC, pPath, Len, &size );
+							GetTextExtentPoint32( hMemDC, pPath, (int) Len, &size );
 							Excess = size.cx - CtrlWidth;
 							if ( Excess <= 0 )
 							{
@@ -3328,25 +3477,19 @@ BOOL CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
 
 void CShellExtension::SplitFiles( HWND hWnd ) noexcept
 {
-	// TODO: Why do I have this here when I only pass 2 things?
-	SEL_FILES sf;
-	sf.pFiles = &m_SelItems;
-	sf.pRegData = &m_RegData;
+	CSelPlusReg spr{ m_SelItems, m_RegData };
 
-	if ( IDOK == DialogBoxParam( g_hResInst, MAKEINTRESOURCE( IDD_SPLIT ), hWnd, (DLGPROC) SplitDlg, (LPARAM) (LPSTR) &sf ) )
+	if ( IDOK == DialogBoxParam( g_hResInst, MAKEINTRESOURCE( IDD_SPLIT ), hWnd, SplitDlg, (LPARAM) (LPSTR) &spr ) )
 	{
 	}
 }
 
 void CShellExtension::ConCatenateFiles( HWND hWnd ) noexcept
 {
-	// TODO: Why do I have this here when I only pass 2 things?
-	SEL_FILES sf;
-	sf.pFiles = &m_SelItems;
-	sf.pRegData = &m_RegData;
+	CSelPlusReg spr{ m_SelItems, m_RegData };
 
 	/* Do the dialog box that presents the informations */
-	if ( IDOK == DialogBoxParam( g_hResInst, MAKEINTRESOURCE( IDD_CONCAT ), hWnd, (DLGPROC) ConcatDlg, (LPARAM) (LPSTR) &sf ) )
+	if ( IDOK == DialogBoxParam( g_hResInst, MAKEINTRESOURCE( IDD_CONCAT ), hWnd, ConcatDlg, (LPARAM) (LPSTR) &spr ) )
 	{
 	}
 }
@@ -3362,7 +3505,7 @@ void CShellExtension::ConCatenateFiles( HWND hWnd ) noexcept
 //   HRESULT code signifying success or failure
 //
 
-STDMETHODIMP CShellExtension::InvokeCommand( LPCMINVOKECOMMANDINFO lpcmi )
+STDMETHODIMP CShellExtension::InvokeCommand( LPCMINVOKECOMMANDINFO lpcmi ) noexcept
 {
 	//
 	// Return an error code if we've been called programmatically or
@@ -3426,7 +3569,7 @@ STDMETHODIMP CShellExtension::InvokeCommand( LPCMINVOKECOMMANDINFO lpcmi )
 //   HRESULT code signifying success or failure
 //
 
-STDMETHODIMP CShellExtension::GetCommandString( UINT_PTR idCmd, UINT uFlags, UINT FAR * /* reserved */, LPSTR pszName, UINT cchMax )
+STDMETHODIMP CShellExtension::GetCommandString( UINT_PTR idCmd, UINT uFlags, UINT FAR * /* reserved */, LPSTR pszName, UINT cchMax ) noexcept
 {
 	//
 	// Return an error code if idCmd contains an invalid offset.
@@ -3502,7 +3645,7 @@ STDMETHODIMP CShellExtension::GetCommandString( UINT_PTR idCmd, UINT uFlags, UIN
 //
 static const FORMATETC g_fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 
-STDMETHODIMP CShellExtension::Initialize( LPCITEMIDLIST /* pidlFolder */, LPDATAOBJECT lpdobj, HKEY /* hKeyProgID */ )
+STDMETHODIMP CShellExtension::Initialize( LPCITEMIDLIST /* pidlFolder */, LPDATAOBJECT lpdobj, HKEY /* hKeyProgID */ ) noexcept
 {
 	HRESULT hr = E_FAIL;
 
