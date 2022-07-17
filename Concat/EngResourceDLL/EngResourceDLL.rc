@@ -66,73 +66,16 @@ BEGIN
     IDD_SPLIT, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 214
+        RIGHTMARGIN, 330
         TOPMARGIN, 7
         BOTTOMMARGIN, 210
     END
+
+    IDD_CONCAT, DIALOG
+    BEGIN
+    END
 END
 #endif    // APSTUDIO_INVOKED
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_SPLIT DIALOGEX 0, 0, 221, 217
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Split"
-FONT 8, "MS Shell Dlg", 0, 0, 0x0
-BEGIN
-    GROUPBOX        "Split Size",IDC_STATIC,7,3,140,52
-    CONTROL         "&Common Drive Sizes",IDC_COMMON_RB,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,12,15,130,10
-    CONTROL         "&Removable Media Sizes",IDC_REM_RB,"Button",BS_AUTORADIOBUTTON,12,26,130,10
-    COMBOBOX        IDC_SIZE_CB,23,38,100,78,CBS_DROPDOWN | WS_VSCROLL | WS_GROUP | WS_TABSTOP
-    LTEXT           "KB",IDC_KB_IND,127,40,9,8
-    GROUPBOX        "Destination",IDC_STATIC,7,60,208,48
-    EDITTEXT        IDC_DEST_NAME,11,87,136,14,ES_AUTOHSCROLL | ES_READONLY
-    PUSHBUTTON      "Cha&nge...",IDC_CHANGE_DESTN,159,87,50,14,WS_GROUP
-    GROUPBOX        "",IDC_STATIC,7,113,208,30,WS_GROUP
-    CONTROL         "Create Copy command &batch file",IDC_CREATE_COPY_FILE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,113,120,10
-    CONTROL         "",IDC_BATCH_NAME,"Static",SS_LEFTNOWORDWRAP | SS_NOPREFIX | SS_PATHELLIPSIS | WS_BORDER | WS_GROUP,11,124,136,14,WS_EX_CLIENTEDGE
-    PUSHBUTTON      "Chan&ge...",IDC_BATCH_NAME_CHANGE,159,124,50,14
-    LTEXT           "Original File Size",IDC_STATIC,7,148,52,8
-    LTEXT           "%s bytes",IDC_ORIG_SIZE,63,148,90,8
-    LTEXT           "Number of Files",IDC_STATIC,7,159,50,8
-    LTEXT           "33",IDC_NUM_FILES,63,159,40,8
-    DEFPUSHBUTTON   "&Split File",IDOK,159,5,50,14,WS_GROUP
-    PUSHBUTTON      "Close",IDCANCEL,159,22,50,14,WS_GROUP
-    PUSHBUTTON      "&About...",IDC_ABOUT,159,41,50,14,WS_GROUP
-    CONTROL         "Progress1",IDC_PROGRESS,"msctls_progress32",0x0,7,200,202,10
-    LTEXT           "Static",IDC_DEST_PATH,15,73,192,8,SS_NOPREFIX | SS_PATHELLIPSIS
-    LTEXT           "Splitting part",IDC_SPLITTING,7,176,42,8,WS_DISABLED
-    LTEXT           "",IDC_FNUM,54,176,43,8
-    LTEXT           "",IDC_CURRFILE,7,188,207,8,SS_NOPREFIX
-    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,7,171,206,1
-END
-
-IDD_CONCAT DIALOGEX 0, 0, 218, 166
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
-CAPTION "Concatenate Files"
-FONT 8, "MS Shell Dlg", 0, 0, 0x0
-BEGIN
-    LTEXT           "&To",IDC_STATIC,4,6,20,8
-    EDITTEXT        IDC_TO,4,16,148,13,ES_AUTOHSCROLL
-    LTEXT           "&Copy",IDC_STATIC,4,33,23,8
-    LISTBOX         IDC_COPY_LIST,4,43,148,59,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "&Up",IDC_UP,155,63,15,11,BS_ICON | WS_GROUP
-    PUSHBUTTON      "&Down",IDC_DOWN,155,77,15,11,BS_ICON | WS_GROUP
-    DEFPUSHBUTTON   "OK",IDOK,161,6,50,14,WS_GROUP
-    PUSHBUTTON      "Close",IDCANCEL,161,23,50,14,WS_GROUP
-    PUSHBUTTON      "&About...",IDC_ABOUT,161,42,50,14,WS_GROUP
-    LTEXT           "Use the up and down buttons to rearrange the copy list so that you join the files in their correct order",IDC_EXPLANATION,4,105,206,16
-    CONTROL         "Progress1",IDC_PROGRESS,"msctls_progress32",0x0,4,151,207,10
-    LTEXT           "Concatenating part",IDC_CONCATING,4,131,63,8,WS_DISABLED
-    LTEXT           "",IDC_CURRFILE,4,141,208,8,SS_NOPREFIX
-    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,4,128,206,1
-    LTEXT           "",IDC_FNUM,70,131,22,8
-END
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -182,6 +125,83 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDD_CONCAT              ICON                    "icon1.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_SPLIT DIALOGEX 0, 0, 337, 217
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Split"
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    GROUPBOX        "Split Size",IDC_STATIC,7,3,265,52
+    CONTROL         "&Common Drive Sizes",IDC_COMMON_RB,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,12,15,130,10
+    CONTROL         "&Removable Media Sizes",IDC_REM_RB,"Button",BS_AUTORADIOBUTTON,12,26,130,10
+    COMBOBOX        IDC_SIZE_CB,23,38,100,78,CBS_DROPDOWN | WS_VSCROLL | WS_GROUP | WS_TABSTOP
+    LTEXT           "KB",IDC_KB_IND,127,40,9,8
+    GROUPBOX        "Destination",IDC_STATIC,7,60,266,48
+    EDITTEXT        IDC_DEST_NAME,11,87,199,14,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "Cha&nge...",IDC_CHANGE_DESTN,216,87,50,14,WS_GROUP
+    GROUPBOX        "",IDC_STATIC,7,113,266,30,WS_GROUP
+    CONTROL         "Create Copy command &batch file",IDC_CREATE_COPY_FILE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,113,120,10
+    CONTROL         "",IDC_BATCH_NAME,"Static",SS_LEFTNOWORDWRAP | SS_NOPREFIX | SS_PATHELLIPSIS | WS_BORDER | WS_GROUP,11,124,199,14,WS_EX_CLIENTEDGE
+    PUSHBUTTON      "Chan&ge...",IDC_BATCH_NAME_CHANGE,216,124,50,14
+    LTEXT           "Original File Size",IDC_STATIC,7,148,52,8
+    LTEXT           "%s bytes",IDC_ORIG_SIZE,63,148,143,8
+    LTEXT           "Number of Files",IDC_STATIC,7,159,50,8
+    LTEXT           "33",IDC_NUM_FILES,63,159,40,8
+    DEFPUSHBUTTON   "&Split File",IDOK,280,7,50,14,WS_GROUP
+    PUSHBUTTON      "Close",IDCANCEL,280,25,50,14,WS_GROUP
+    PUSHBUTTON      "&About...",IDC_ABOUT,280,43,50,14,WS_GROUP
+    CONTROL         "Progress1",IDC_PROGRESS,"msctls_progress32",0x0,7,200,323,10
+    LTEXT           "Static",IDC_DEST_PATH,15,73,192,8,SS_NOPREFIX | SS_PATHELLIPSIS
+    LTEXT           "Splitting part",IDC_SPLITTING,7,176,42,8,WS_DISABLED
+    LTEXT           "",IDC_FNUM,54,176,43,8
+    LTEXT           "",IDC_CURRFILE,7,188,323,8,SS_NOPREFIX
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,7,171,323,1
+END
+
+IDD_CONCAT DIALOGEX 0, 0, 337, 201
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Concatenate Files"
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    LTEXT           "&To",IDC_STATIC,4,6,20,8
+    EDITTEXT        IDC_TO,4,16,252,13,ES_AUTOHSCROLL
+    LTEXT           "&Copy",IDC_STATIC,4,33,23,8
+    LISTBOX         IDC_COPY_LIST,4,43,252,91,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Up",IDC_UP,259,63,15,11,BS_ICON | WS_GROUP
+    PUSHBUTTON      "&Down",IDC_DOWN,259,77,15,11,BS_ICON | WS_GROUP
+    DEFPUSHBUTTON   "OK",IDOK,280,7,50,14,WS_GROUP
+    PUSHBUTTON      "Close",IDCANCEL,280,25,50,14,WS_GROUP
+    PUSHBUTTON      "&About...",IDC_ABOUT,280,43,50,14,WS_GROUP
+    LTEXT           "Use the up and down buttons to rearrange the copy list so that you join the files in their correct order",IDC_EXPLANATION,4,140,323,16
+    CONTROL         "Progress1",IDC_PROGRESS,"msctls_progress32",0x0,4,186,328,10
+    LTEXT           "Concatenating part",IDC_CONCATING,4,166,63,8,WS_DISABLED
+    LTEXT           "",IDC_CURRFILE,4,176,327,8,SS_NOPREFIX
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,4,163,327,1
+    LTEXT           "",IDC_FNUM,70,166,22,8
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_SPLIT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_CONCAT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 
 /////////////////////////////////////////////////////////////////////////////
