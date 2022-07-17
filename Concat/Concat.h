@@ -56,8 +56,8 @@ class CShellExtension : public IContextMenu, IShellExtInit
 private:
     ULONG m_cRef;	// Object reference count
 	SELITEMS m_SelItems;	// The selected files and folders
-	HRESULT GetSelectedData();	// Converts the clipboard selection format to the usable form
-	size_t GetNumSelectedItems();	// Returns the number of items selected in Explorer
+	HRESULT GetSelectedData() noexcept;	// Converts the clipboard selection format to the usable form
+	size_t GetNumSelectedItems() noexcept;	// Returns the number of items selected in Explorer
     // The registration information
     std::optional<CMyRegData> m_RegData;
 
