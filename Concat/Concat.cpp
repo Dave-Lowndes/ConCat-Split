@@ -14,6 +14,9 @@
 #include <windowsx.h>
 #include <initguid.h>
 #include <shlobj.h>
+#include <filesystem>
+#include <format>
+#include <fcntl.h>
 
 #include "resource.h"
 #include "RegEnc.h"
@@ -30,6 +33,7 @@
 #include <span>
 #include <strsafe.h>
 
+#define ANSIBATCHOUTPUT
 
 /*
 Don't acknowledge successful entry of the registration details - have the user close and reopen to force the proper (complex) registration code to run.
@@ -993,12 +997,31 @@ public:
 	UINT64 SrcRemaining;
 	UINT64 SrcFileSize;
 	CFileHandle hSrcFile;
+
+	// Currently a UTF-8 batch file will only work from an existing command
+	// prompt window that's got the UTF-8 code page set using chcp 65001, or
+	// from Windows Explorer when the (beta) setting
+	// "Use Unicode UTF-8 for worldwide language support" is set.
+	// So, for now, stick with ANSI output
+#ifdef ANSIBATCHOUTPUT
 	CFileHandle hBatchFile;
+#else
+	FILE* fBatch = nullptr;
+#endif
 
 	vector<HandlePlusSize> vSplitFiles;
 
 	wstring sSrcFileName;	// The name of the file that's being split - used to create the batch file contents.
 
+#ifndef ANSIBATCHOUTPUT
+	~SplitThreadData()
+	{
+		if ( fBatch != nullptr )
+		{
+			fclose( fBatch );
+		}
+	}
+#endif
 };
 
 static tuple<DWORD, LARGE_INTEGER> GetTargetSize( const SELITEMS& Files ) noexcept
@@ -2216,6 +2239,7 @@ constexpr static size_t NumberOfCharactersToDisplayValue( UINT Value ) noexcept
 	return( DigitWidth );
 }
 
+// Constructs a string to show in the UI like this: "filename.ext001...filename.ext199"
 static void DisplayDestnFileNameRange( HWND hDlg, LPCTSTR pFName, const UINT NumFiles ) noexcept
 {
 	const auto NumChars = NumberOfCharactersToDisplayValue( NumFiles );
@@ -2225,34 +2249,27 @@ static void DisplayDestnFileNameRange( HWND hDlg, LPCTSTR pFName, const UINT Num
 	/* Create the first file name */
 	CreateNumericalName( pFName, 1, szFullName, NumChars );
 
-	TCHAR fname[_MAX_FNAME];
-	TCHAR fext[_MAX_EXT];
-	TCHAR szDrive[_MAX_DRIVE];
-	TCHAR szDir[_MAX_DIR];
-
-	_tsplitpath_s( szFullName, szDrive, szDir, fname, fext );
+	std::filesystem::path pat{ szFullName };
 
 	/* Display the destn path */
-	TCHAR szBuffer[2 * (_MAX_FNAME + _MAX_EXT + 1) + 3];
-	_tmakepath_s( szBuffer, szDrive, szDir, NULL, NULL );
-	SetDlgItemText( hDlg, IDC_DEST_PATH, szBuffer );
+	SetDlgItemText( hDlg, IDC_DEST_PATH, pat.parent_path().c_str() );
 
 	/* Compose the first file name */
-	lstrcpy( szBuffer, fname );
-	lstrcat( szBuffer, fext );
+	wstring strFNameRange = pat.filename();
 
 	/* There's no point showing a "to" filename if we've only got a single one! */
 	if ( NumFiles > 1 )
 	{
-		lstrcat( szBuffer, _T("…") );
+		strFNameRange += _T('…');
 
 		CreateNumericalName( pFName, NumFiles, szFullName, NumChars );
-		_tsplitpath_s( szFullName, NULL, 0, NULL, 0, fname, _countof(fname), fext, _countof(fext) );
-		lstrcat( szBuffer, fname );
-		lstrcat( szBuffer, fext );
+
+		std::filesystem::path pat2{ szFullName };
+
+		strFNameRange += pat2.filename();
 	}
 
-	SetDlgItemText( hDlg, IDC_DEST_NAME, szBuffer );
+	SetDlgItemText( hDlg, IDC_DEST_NAME, strFNameRange.c_str() );
 }
 
 struct SETTINGS
@@ -2419,9 +2436,6 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 
     try
     {
-
-	if ( dwError == ERROR_SUCCESS )
-	{
 		size_t indx = 0;
 		for ( vector<HandlePlusSize>::const_iterator it = ptd.vSplitFiles.begin();
 				( it != ptd.vSplitFiles.end() ) && !g_bCancel && ( dwError == ERROR_SUCCESS );
@@ -2508,33 +2522,35 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 				}
 
 				/* Do the source file name for the batch command line */
+#ifdef ANSIBATCHOUTPUT
 				if ( ptd.hBatchFile.IsValid() )
+#else
+				if ( ptd.fBatch != nullptr )
+#endif
 				{
 					/* For the batch file, we only want the filename (no path) */
-					TCHAR szName[_MAX_FNAME];
-					TCHAR szExt[_MAX_EXT];
-					TCHAR szFileName[_MAX_PATH];
+					const std::filesystem::path pat( it->szFName );
+					const wstring sFileName = pat.filename();
+					CT2CA pA( sFileName.c_str() );
 
-					_tsplitpath_s( it->szFName, NULL, 0, NULL, 0, szName, _countof(szName), szExt, _countof(szExt) );
-					_tmakepath_s( szFileName, NULL, NULL, szName, szExt );
+					/* Quote the name to cater for long file names with spaces */
+					// Note, prefix the format string to L to get Unicode!
+					auto quotedName = std::format( R"("{}")", pA );
 
-					/* The filename needs quoting to cater for names with spaces */
+					// If there are more to do, add a '+', otherwise a space
+					// (the results and knowledge of the copy command syntax
+					// will make this clear)
+					quotedName += it != ptd.vSplitFiles.end() - 1 ? '+' : ' ';
+
+#ifdef ANSIBATCHOUTPUT
 					DWORD dwBytesWritten;
-					WriteFile( ptd.hBatchFile, "\"", 1, &dwBytesWritten, NULL );
-
-					CT2CA szAFN( szFileName );
-					WriteFile( ptd.hBatchFile, szAFN, (DWORD) wcslen( szFileName ), &dwBytesWritten, NULL );
-
-					WriteFile( ptd.hBatchFile, "\"", 1, &dwBytesWritten, NULL );
-
-					if ( it != ptd.vSplitFiles.end()-1 )
-					{
-						WriteFile( ptd.hBatchFile, "+", 1, &dwBytesWritten, NULL );
-					}
+					WriteFile( ptd.hBatchFile, quotedName.c_str(), static_cast<DWORD>(quotedName.size() * sizeof( quotedName[0] )), &dwBytesWritten, NULL );
+#else
+					_fputts( quotedName.c_str(), ptd.fBatch );
+#endif
 				}
 			}
 		}
-	}
 
 #if 0	// Not necessary now, done automatically when container object destroyed
 	/* Close the original file */
@@ -2553,28 +2569,27 @@ static unsigned __stdcall SplitControlThread_Reader( void * pParams )
 	if ( !g_bCancel && ( dwError == ERROR_SUCCESS ) )
 	{
 		/* Write the target file name to the batch file */
+#ifdef ANSIBATCHOUTPUT
 		if ( ptd.hBatchFile.IsValid() )
+#else
+		if ( ptd.fBatch != nullptr )
+#endif
 		{
-			DWORD dwBytesWritten;
-
-			WriteFile( ptd.hBatchFile, " ", 1, &dwBytesWritten, NULL );
-
-			/* For the batch file, we only want the filename (no path) */
-			TCHAR szName[_MAX_FNAME];
-			TCHAR szExt[_MAX_EXT];
-			TCHAR szFileName[_MAX_PATH];
-
-			// TODO: Modify to use C++ path facilities
-			_tsplitpath_s( ptd.sSrcFileName.c_str(), NULL, 0, NULL, 0, szName, _countof(szName), szExt, _countof(szExt) );
-			_tmakepath_s( szFileName, NULL, NULL, szName, szExt );
+			/* For the batch file usage, we only want the filename (no path) */
+			const std::filesystem::path pat( ptd.sSrcFileName );
+			const wstring sFileName = pat.filename();
+			CT2CA pA( sFileName.c_str() );
 
 			/* Quote the name to cater for long file names with spaces */
-			WriteFile( ptd.hBatchFile, "\"", 1, &dwBytesWritten, NULL );
+			// Note, prefix the format string with L to get Unicode.
+			const auto quotedName = std::format( R"("{}")", pA );
 
-			CT2CA szAFN( szFileName );
-			WriteFile( ptd.hBatchFile, szAFN, (DWORD) wcslen( szFileName ), &dwBytesWritten, NULL );
-
-			WriteFile( ptd.hBatchFile, "\"", 1, &dwBytesWritten, NULL );
+#ifdef ANSIBATCHOUTPUT
+			DWORD dwBytesWritten;
+			WriteFile( ptd.hBatchFile, quotedName.c_str(), static_cast<DWORD>(quotedName.size() * sizeof( quotedName[0] )), &dwBytesWritten, NULL );
+#else
+			_fputts( quotedName.c_str(), ptd.fBatch );
+#endif
 		}
 
 		/* Mark all the created split files to be retained */
@@ -2641,20 +2656,30 @@ static void SplitEm( HWND hWnd, SplitDlgData & osf, HWND hProgress, bool bCreate
 		*/
 
 	/* Create the DOS batch file */
+#ifdef ANSIBATCHOUTPUT
 	CFileHandle hBatchFile;
-	DWORD dwBytesWritten;
+#else
+	FILE * fBatch = nullptr;
+#endif
 
 	if ( bCreateBatchFile )
 	{
-		/* Create the file */
+#ifdef ANSIBATCHOUTPUT
 		hBatchFile.Attach( CreateFile( osf.sBatchName.c_str(), GENERIC_WRITE, 0, NULL, CREATE_NEW,
 						FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL ) );
-
 		if ( !hBatchFile.IsValid() )
+#else
+		// Create the file for utf-8 ouput (w = write, x = fail if exists, t = text mode)
+		_wfopen_s( &fBatch, osf.sBatchName.c_str(), L"wxt, ccs=UTF-8" );
+		if ( fBatch == nullptr )
+#endif
 		{
+#ifdef ANSIBATCHOUTPUT
 			const DWORD dwErr = GetLastError();
-
 			if ( dwErr == ERROR_FILE_EXISTS )
+#else
+			if ( errno == EEXIST )
+#endif
 			{
 				TCHAR szMsg[_MAX_PATH+200];
 				TCHAR szFmt[100];
@@ -2664,12 +2689,20 @@ static void SplitEm( HWND hWnd, SplitDlgData & osf, HWND hProgress, bool bCreate
 
 				if ( IDYES == MessageBox( hWnd, szMsg, szAltName, MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2 ) )
 				{
+#ifdef ANSIBATCHOUTPUT
 					hBatchFile.Attach( CreateFile( osf.sBatchName.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
 									FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL ) );
+#else
+					_wfopen_s( &fBatch, osf.sBatchName.c_str(), L"wt, ccs=UTF-8" );
+#endif
 				}
 			}
 
+#ifdef ANSIBATCHOUTPUT
 			if ( !hBatchFile.IsValid() )
+#else
+			if ( fBatch == nullptr )
+#endif
 			{
 				ResMessageBox( hWnd, IDS_FAIL_CREATE_BAT/*_T("Failed to create DOS batch file")*/, szAltName, MB_OK | MB_ICONINFORMATION );
 			}
@@ -2686,9 +2719,21 @@ static void SplitEm( HWND hWnd, SplitDlgData & osf, HWND hProgress, bool bCreate
 		const auto NumChars = NumberOfCharactersToDisplayValue( osf.NumFiles );
 
 		/* Form the batch command */
+#ifdef ANSIBATCHOUTPUT
 		if ( hBatchFile.IsValid() )
+#else
+		if ( fBatch != nullptr )
+#endif
 		{
-			WriteFile( hBatchFile, "copy /b ", sizeof("copy /b ")-1, &dwBytesWritten, NULL );
+			// Write out the chcp command so that we handle unicode characters, also note the BOM character at the start!
+#ifdef ANSIBATCHOUTPUT
+			std::string_view cpCmd( "copy /b " );
+			DWORD dwBytesWritten;
+			WriteFile( hBatchFile, cpCmd.data(), static_cast<DWORD>(cpCmd.length() * sizeof( cpCmd[0] )), &dwBytesWritten, NULL );
+#else
+			std::wstring_view chcpCmd( L"chcp 65001\ncopy /b " );
+			_fputts( chcpCmd.data(), fBatch );
+#endif
 		}
 
 		LARGE_INTEGER SrcFileSize;
@@ -2704,7 +2749,11 @@ static void SplitEm( HWND hWnd, SplitDlgData & osf, HWND hProgress, bool bCreate
 			auto ptd = new SplitThreadData();
 			ptd->sSrcFileName = osf.sSrcFileName;
 			ptd->MaxNumCharsForNumericName = NumChars;
+#ifdef ANSIBATCHOUTPUT
 			ptd->hBatchFile.Attach( hBatchFile.Detach() );
+#else
+			ptd->fBatch = fBatch;
+#endif
 			ptd->hParentWnd = hWnd;
 			ptd->hProgress = hProgress;
 			ptd->hSrcFile.Attach( hSrcFile.Detach() );
@@ -3010,14 +3059,10 @@ INT_PTR CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam
 
 			/* Set the default batch file name */
 			{
-				TCHAR szDrive[_MAX_DRIVE];
-				TCHAR szDir[_MAX_DIR];
+				std::filesystem::path pat{ psdd->sSrcFileName };
+				pat.replace_filename( "concat.bat" );
 
-				_tsplitpath_s( psdd->sSrcFileName.c_str(), szDrive, _countof(szDrive), szDir, _countof(szDir), NULL, 0, NULL, 0);
-
-				TCHAR szBatchName[_MAX_PATH];
-				_tmakepath_s( szBatchName, szDrive, szDir, _T("concat"), _T("bat"));
-				psdd->sBatchName = szBatchName;
+				psdd->sBatchName = pat;
 
 				SetDlgItemText( hDlg, IDC_BATCH_NAME, psdd->sBatchName.c_str() );
 			}
