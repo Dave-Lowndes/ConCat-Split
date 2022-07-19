@@ -13,8 +13,6 @@
 #endif
 #endif
 
-using namespace std;
-
 /* Menu item ID's */
 #define IDOFFSET_CONCAT	0x00
 
