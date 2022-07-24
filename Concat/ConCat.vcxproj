@@ -77,28 +77,28 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <RunCodeAnalysis>false</RunCodeAnalysis>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
     <RunCodeAnalysis>false</RunCodeAnalysis>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <RunCodeAnalysis>false</RunCodeAnalysis>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <RunCodeAnalysis>false</RunCodeAnalysis>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <VcpkgEnabled>true</VcpkgEnabled>
@@ -125,7 +125,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;PRODUCT_REGSTR=CONCAT_REGSTR;ISOLATION_AWARE_ENABLED;_WIN32_WINNT=_WIN32_WINNT_WIN7;_CRTDBG_MAP_ALLOC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;PRODUCT_REGSTR=CONCAT_REGSTR;ISOLATION_AWARE_ENABLED;_WIN32_WINNT=_WIN32_WINNT_WIN7;_CRTDBG_MAP_ALLOC;ANSIBATCHOUTPUT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -161,7 +161,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;PRODUCT_REGSTR=CONCAT_REGSTR;ISOLATION_AWARE_ENABLED;_WIN32_WINNT=_WIN32_WINNT_WIN7;_CRTDBG_MAP_ALLOC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;PRODUCT_REGSTR=CONCAT_REGSTR;ISOLATION_AWARE_ENABLED;_WIN32_WINNT=_WIN32_WINNT_WIN7;_CRTDBG_MAP_ALLOC;ANSIBATCHOUTPUT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -197,7 +197,7 @@
     </Midl>
     <ClCompile>
       <Optimization>MinSpace</Optimization>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;PRODUCT_REGSTR=CONCAT_REGSTR;ISOLATION_AWARE_ENABLED;_WIN32_WINNT=_WIN32_WINNT_WIN7;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;PRODUCT_REGSTR=CONCAT_REGSTR;ISOLATION_AWARE_ENABLED;_WIN32_WINNT=_WIN32_WINNT_WIN7;ANSIBATCHOUTPUT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -207,6 +207,7 @@
       <WarningLevel>Level4</WarningLevel>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>..\..\CommonAboutBoxV3Reg;..\..\RegGen;..\..\CommonCode;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;_WIN32_WINNT=_WIN32_WINNT_WIN7;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -231,7 +232,7 @@
     </Midl>
     <ClCompile>
       <Optimization>MinSpace</Optimization>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;PRODUCT_REGSTR=CONCAT_REGSTR;ISOLATION_AWARE_ENABLED;_WIN32_WINNT=_WIN32_WINNT_WIN7;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;PRODUCT_REGSTR=CONCAT_REGSTR;ISOLATION_AWARE_ENABLED;_WIN32_WINNT=_WIN32_WINNT_WIN7;ANSIBATCHOUTPUT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -240,6 +241,7 @@
       <WarningLevel>Level4</WarningLevel>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>..\..\CommonAboutBoxV3Reg;..\..\RegGen;..\..\CommonCode;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;_WIN32_WINNT=_WIN32_WINNT_WIN7;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -259,7 +261,13 @@
     <ClCompile Include="..\..\CommonCode\CheckForUpdate.cpp" />
     <ClCompile Include="..\..\RegGen\RegDecV3.cpp" />
     <ClCompile Include="..\..\RegGen\RegKeyRegistryFuncs.cpp" />
+    <ClCompile Include="CommonDlgData.cpp" />
+    <ClCompile Include="CommonThread.cpp" />
     <ClCompile Include="Concat.cpp" />
+    <ClCompile Include="ConcatDlg.cpp" />
+    <ClCompile Include="ConcatThread.cpp" />
+    <ClCompile Include="SplitDlg.cpp" />
+    <ClCompile Include="SplitThread.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\readme\revision_history.htm">
@@ -278,10 +286,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="chandle.h" />
+    <ClInclude Include="CommonDlgData.h" />
+    <ClInclude Include="CommonThread.h" />
+    <ClInclude Include="CommonThreadData.h" />
     <ClInclude Include="concat.h" />
+    <ClInclude Include="ConcatThreadData.h" />
+    <ClInclude Include="CSelPlusReg.h" />
     <ClInclude Include="GETVSTR.H" />
+    <ClInclude Include="Globals.h" />
     <ClInclude Include="RegEnc.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="SplitThreadData.h" />
     <ClInclude Include="VerUtil.h" />
   </ItemGroup>
   <ItemGroup>

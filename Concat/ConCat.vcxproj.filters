@@ -42,6 +42,24 @@
     <ClCompile Include="..\..\RegGen\RegKeyRegistryFuncs.cpp">
       <Filter>Source Files\LibraryCode</Filter>
     </ClCompile>
+    <ClCompile Include="ConcatDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SplitDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonDlgData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ConcatThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SplitThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Concat.def">
@@ -76,6 +94,27 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="VerUtil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonDlgData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonThreadData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CSelPlusReg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ConcatThreadData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Globals.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonThread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SplitThreadData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

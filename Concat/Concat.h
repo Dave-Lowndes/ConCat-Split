@@ -2,6 +2,7 @@
 #include <vector>
 #include <optional>
 #include "RegDataV3.h"
+#include "CSelPlusReg.h"
 
 #if defined(_M_IA64)
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='ia64' publicKeyToken='6595b64144ccf1df' language='*'\"")
@@ -42,9 +43,6 @@ public:
     STDMETHODIMP    CreateInstance (LPUNKNOWN, REFIID, LPVOID FAR *) noexcept override;
     STDMETHODIMP    LockServer (BOOL) noexcept override;
 };
-
-// Rename (or eliminate) this to something like STRINGVEC - code may be more understandable?
-typedef std::vector<std::wstring> SELITEMS;
 
 //
 // CShellExtension defines a context menu shell extension object.

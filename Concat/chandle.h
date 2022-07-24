@@ -1,3 +1,5 @@
+#pragma once
+
 template<HANDLE t_hNullValue>
 class CHandleT
 {
