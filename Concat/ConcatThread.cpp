@@ -1,6 +1,7 @@
 #include <afxmt.h>
 #include <string>
 #include <filesystem>
+#include <memory>
 
 #include "CommonThreadData.h"
 #include "CommonThread.h"
@@ -9,19 +10,19 @@
 #include "ConcatThreadData.h"
 #include "Globals.h"
 #include "resource.h"
-#include "CommonDlgData.h"
+#include "CommonDlg.h"
 
 using std::wstring;
 using std::tuple;
 namespace fs = std::filesystem;
+using std::unique_ptr;
 
 CEvent g_StopCommonWriterThread;
 
-static tuple<DWORD, LARGE_INTEGER> GetTargetSize( const SELITEMS& Files ) noexcept
+static tuple<DWORD, LARGE_INTEGER> GetTargetSize( const VEC_FILENAMES& Files ) noexcept
 {
 	DWORD dwError = ERROR_SUCCESS;
-	LARGE_INTEGER TargetSize;
-	TargetSize.QuadPart = 0;
+	LARGE_INTEGER TargetSize{ .QuadPart = 0 };
 
 	/* Loop round each file to be joined and add up the sizes */
 	for ( auto& itName : Files )
@@ -31,10 +32,7 @@ static tuple<DWORD, LARGE_INTEGER> GetTargetSize( const SELITEMS& Files ) noexce
 		HANDLE hFind = FindFirstFile( itName.c_str(), &fd );
 		if ( hFind != INVALID_HANDLE_VALUE )
 		{
-			LARGE_INTEGER fsize;
-
-			fsize.HighPart = fd.nFileSizeHigh;
-			fsize.LowPart = fd.nFileSizeLow;
+			LARGE_INTEGER fsize{ .u{.LowPart = fd.nFileSizeLow, .HighPart = static_cast<LONG>(fd.nFileSizeHigh)} };
 
 			// Accumulate the size
 			TargetSize.QuadPart += fsize.QuadPart;
@@ -68,15 +66,26 @@ static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t& Curr
 		{
 			auto Remaining = FileSize;
 
-			PostMessage( hProgress, PBM_SETRANGE32, 0, 0x8000 );
+			PostMessage( hProgress, PBM_SETRANGE32, 0, PROGRESS_CTL_MAX );
+
+			int PrevProgPos = 0;
 
 			/* Do the copy a block at a time */
 			while ( (Remaining.QuadPart > 0) && (dwError == ERROR_SUCCESS) && !g_bCancel )
 			{
 				{
-					const int ProgPos = static_cast<int>(((FileSize.QuadPart - Remaining.QuadPart) * 0x8000) / FileSize.QuadPart);
+					// Fiddle +1 to ensure it gets to 100%
+					const int ProgPos = 1 + static_cast<int>(((FileSize.QuadPart - Remaining.QuadPart) * PROGRESS_CTL_MAX) / FileSize.QuadPart);
 
-					PostMessage( hProgress, PBM_SETPOS, ProgPos, 0 );
+					if ( ProgPos != PrevProgPos )
+					{
+						// The progress bar's position lags what it's set to since MS changed it!
+						// Trick to work around it: https://stackoverflow.com/questions/22469876/progressbar-lag-when-setting-position-with-pbm-setpos
+						PostMessage( hProgress, PBM_SETPOS, ProgPos+1, 0 );
+						PostMessage( hProgress, PBM_SETPOS, ProgPos, 0 );
+
+						PrevProgPos = ProgPos;
+					}
 				}
 
 				CTransferBuffer& rtb = g_TransBuffers[CurrentBuffer];
@@ -91,9 +100,9 @@ static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t& Curr
 					const DWORD BufferSize = rtb.GetBufferSize();
 
 					const DWORD ThisBlockSize = Remaining.QuadPart > BufferSize ?
-						BufferSize :
-						// This is valid to do because we've just checked that it's the remainder
-						Remaining.LowPart;
+													BufferSize :
+													// This is valid to do because we've just checked that it's the remainder
+													Remaining.LowPart;
 
 #ifdef _DEBUG
 					TRACE( "ReadFile %d\n", CurrentBuffer );
@@ -112,11 +121,8 @@ static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t& Curr
 #endif
 
 						/* Save the file handle & data length with the buffer */
-						rtb.fh = hDestnFile;
-						rtb.SizeOfData = dwBytesRead;
-
 						/* Signal to the writer that there's something waiting for it */
-						rtb.SetBufferFilled();
+						rtb.SetBufferFilled( hDestnFile, dwBytesRead );
 
 						/* Use the next buffer */
 						CurrentBuffer = (CurrentBuffer + 1) % _countof( g_TransBuffers );
@@ -147,10 +153,10 @@ static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t& Curr
 	return(dwError);
 }
 
-unsigned __stdcall ConcatControlThread_Reader( void* pParams )
+void __stdcall ConcatControlThread_Reader( unique_ptr<ConcatThreadData> uctd )
 {
-	// Get passed a reference (non-null pointer) to the thread data
-	ConcatThreadData& ctd = *(static_cast<ConcatThreadData*>(pParams));
+	// Treat the passed data as a reference
+	ConcatThreadData& ctd = *uctd;
 
 	bool bErrorAlreadyReported = false;
 
@@ -186,17 +192,16 @@ unsigned __stdcall ConcatControlThread_Reader( void* pParams )
 						InitializeTransferBuffers();
 
 						/* Start the concatenate writer thread */
-						UINT tid;
-						::CHandle hThread( reinterpret_cast<HANDLE>(_beginthreadex( NULL, 0, CommonWriterThread, NULL, 0, &tid )) );
+						std::thread WriterThread( CommonWriterThread );
 
 						size_t CurrentBuffer = 0;
 
 						/* Loop for each file we're concatenating */
-						SELITEMS::const_iterator itName;
+						VEC_FILENAMES::const_iterator itName;
 						UINT indx;
 
-						for ( indx = 0, itName = ctd.Files.begin();
-							(itName != ctd.Files.end()) && (dwError == ERROR_SUCCESS) && !g_bCancel;
+						for ( indx = 0, itName = cbegin( ctd.Files );
+							(itName != cend( ctd.Files )) && (dwError == ERROR_SUCCESS) && !g_bCancel;
 							++indx, ++itName )
 						{
 							/* Update the progress control with the item number and filename of the current item */
@@ -220,13 +225,11 @@ unsigned __stdcall ConcatControlThread_Reader( void* pParams )
 									0,
 									NULL );
 
-								TCHAR szMsg[1024];
-								TCHAR szFmt[100];
-								LoadString( g_hResInst, IDS_FAIL_JOIN, szFmt, _countof( szFmt ) );
-								wsprintf( szMsg, szFmt/*_T("Failed while joining file '%s'\n\n%s")*/, (LPCTSTR) itName->c_str(), (LPCTSTR) lpMsgBuf );
+								CString sFmt(MAKEINTRESOURCE( IDS_FAIL_JOIN ));
+								CString sMsg;
+								sMsg.Format( sFmt/*_T("Failed while joining file '%s'\n\n%s")*/, (LPCTSTR) itName->c_str(), (LPCTSTR) lpMsgBuf );
 
-								//								LoadString( g_hResInst, IDS_FAIL_JOIN_CAPTION, szFmt, _countof( szFmt ) );
-								ThreadMessageBox( ctd.hParentWnd, szMsg, szAppName, MB_OK | MB_ICONERROR );
+								ThreadMessageBox( ctd.hParentWnd, sMsg, szConcatAppName, MB_OK | MB_ICONERROR );
 
 								// Free the buffer.
 								LocalFree( lpMsgBuf );
@@ -239,7 +242,7 @@ unsigned __stdcall ConcatControlThread_Reader( void* pParams )
 						g_StopCommonWriterThread.SetEvent();
 
 						/* Wait for the thread to finish */
-						WaitForSingleObject( hThread, 60000 );
+						WriterThread.join();
 					}
 					catch ( std::bad_alloc& )
 					{
@@ -276,13 +279,12 @@ unsigned __stdcall ConcatControlThread_Reader( void* pParams )
 		if ( !MoveFile( szTempName, ctd.sToName.c_str() ) )
 		{
 			/* Failed to rename the file - tell the user */
-			TCHAR szMsg[300];
-			LoadString( g_hResInst, IDS_FAIL_REN_TEMP, szMsg, _countof( szMsg ) );
+			CString sMsg(MAKEINTRESOURCE( IDS_FAIL_REN_TEMP ));
 
-			ThreadMessageBox( ctd.hParentWnd, szMsg, szTempName, MB_OK | MB_ICONERROR );
+			ThreadMessageBox( ctd.hParentWnd, sMsg, szTempName, MB_OK | MB_ICONERROR );
 		}
 
-		MessageBeep( MB_OK );
+		//MessageBeep( MB_OK );
 	}
 	else
 	{
@@ -307,13 +309,10 @@ unsigned __stdcall ConcatControlThread_Reader( void* pParams )
 				0,
 				NULL );
 
-			TCHAR szMsg[1024];
-			//TCHAR szFmt[100];
-			//LoadString( g_hResInst, IDS_FAIL_JOIN, szFmt, _countof( szFmt ) );
-			wsprintf( szMsg, _T( "Failed to join temporary file '%s'.\n\n%s" ), szTempName, (LPCTSTR) lpMsgBuf );
+			CString sMsg;
+			sMsg.Format( _T( "Failed to join temporary file '%s'.\n\n%s" ), szTempName, (LPCTSTR) lpMsgBuf );
 
-			//		LoadString( g_hResInst, IDS_FAIL_JOIN_CAPTION, szFmt, _countof( szFmt ) );
-			ThreadMessageBox( ctd.hParentWnd, szMsg, szAppName, MB_OK | MB_ICONERROR );
+			ThreadMessageBox( ctd.hParentWnd, sMsg, szConcatAppName, MB_OK | MB_ICONERROR );
 
 			// Free the buffer.
 			LocalFree( lpMsgBuf );
@@ -325,11 +324,6 @@ unsigned __stdcall ConcatControlThread_Reader( void* pParams )
 
 	/* Tell the main UI thread that we've done (and to reset the UI) */
 	PostMessage( ctd.hParentWnd, UWM_WORKER_FINISHED, 0, reinterpret_cast<LPARAM>(&ctd) );
-
-	// No longer need this thread data
-	delete& ctd;
-
-	return 0;
 }
 
 bool FileExistsAndWritable( LPCTSTR pFileName ) noexcept

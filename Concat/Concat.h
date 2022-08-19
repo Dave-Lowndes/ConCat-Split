@@ -1,6 +1,8 @@
 #include <atlbase.h>
 #include <vector>
 #include <optional>
+#include <afxwin.h>
+
 #include "RegDataV3.h"
 #include "CSelPlusReg.h"
 
@@ -51,7 +53,7 @@ class CShellExtension : public IContextMenu, IShellExtInit
 {
 private:
     ULONG m_cRef;	// Object reference count
-	SELITEMS m_SelItems;	// The selected files and folders
+	VEC_FILENAMES m_SelItems;	// The selected files and folders
 	HRESULT GetSelectedData() noexcept;	// Converts the clipboard selection format to the usable form
 	size_t GetNumSelectedItems() noexcept;	// Returns the number of items selected in Explorer
     // The registration information
@@ -83,4 +85,17 @@ private:
 	void SplitFiles( HWND hWnd ) noexcept;
 
 	CComPtr<IDataObject> m_SelData;
+};
+
+class CApp : public CWinApp
+{
+public:
+    CApp()
+    {
+    }
+
+    virtual BOOL InitInstance();
+    virtual int ExitInstance();
+
+    DECLARE_MESSAGE_MAP()
 };

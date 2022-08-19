@@ -10,11 +10,11 @@ public:
 	ConcatThreadData( const ConcatThreadData& ) = delete;
 	ConcatThreadData operator=( const ConcatThreadData& ) = delete;
 
-	ConcatThreadData( const SELITEMS& files, LPCTSTR pDestnName, HWND hProg, HWND hParent ) : Files{ files }, sToName{ pDestnName }, CommonThreadData( hProg, hParent )
+	ConcatThreadData( const VEC_FILENAMES& files, LPCTSTR pDestnName, HWND hProg, HWND hParent ) : Files{ files }, sToName{ pDestnName }, CommonThreadData( hProg, hParent )
 	{
 	}
 
-	const SELITEMS& Files;	// Reference to the (re-arranged) collection of file names that are being joined
+	const VEC_FILENAMES& Files;	// Reference to the (re-arranged) collection of file names that are being joined
 	const std::wstring sToName;	// The final copy destination file name
 };
 

@@ -48,7 +48,7 @@
     <ClCompile Include="SplitDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CommonDlgData.cpp">
+    <ClCompile Include="CommonDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ConcatThread.cpp">
@@ -96,7 +96,7 @@
     <ClInclude Include="VerUtil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CommonDlgData.h">
+    <ClInclude Include="CommonDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CommonThreadData.h">
@@ -117,6 +117,12 @@
     <ClInclude Include="SplitThreadData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SplitDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ConcatDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="bitmap1.bmp">
@@ -125,16 +131,10 @@
     <Image Include="concat_m.bmp">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="down.bmp">
-      <Filter>Resource Files</Filter>
-    </Image>
     <Image Include="down.ico">
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="icon1.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="up.bmp">
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="up.ico">

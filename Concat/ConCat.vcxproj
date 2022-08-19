@@ -30,7 +30,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
-    <UseOfMfc>false</UseOfMfc>
+    <UseOfMfc>Static</UseOfMfc>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -42,7 +42,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
-    <UseOfMfc>false</UseOfMfc>
+    <UseOfMfc>Static</UseOfMfc>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -221,6 +221,7 @@
       <DataExecutionPrevention />
       <ImportLibrary>.\Release/ConCat.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -252,6 +253,7 @@
       <ModuleDefinitionFile>concat.def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -261,7 +263,7 @@
     <ClCompile Include="..\..\CommonCode\CheckForUpdate.cpp" />
     <ClCompile Include="..\..\RegGen\RegDecV3.cpp" />
     <ClCompile Include="..\..\RegGen\RegKeyRegistryFuncs.cpp" />
-    <ClCompile Include="CommonDlgData.cpp" />
+    <ClCompile Include="CommonDlg.cpp" />
     <ClCompile Include="CommonThread.cpp" />
     <ClCompile Include="Concat.cpp" />
     <ClCompile Include="ConcatDlg.cpp" />
@@ -286,16 +288,18 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="chandle.h" />
-    <ClInclude Include="CommonDlgData.h" />
+    <ClInclude Include="CommonDlg.h" />
     <ClInclude Include="CommonThread.h" />
     <ClInclude Include="CommonThreadData.h" />
     <ClInclude Include="concat.h" />
+    <ClInclude Include="ConcatDlg.h" />
     <ClInclude Include="ConcatThreadData.h" />
     <ClInclude Include="CSelPlusReg.h" />
     <ClInclude Include="GETVSTR.H" />
     <ClInclude Include="Globals.h" />
     <ClInclude Include="RegEnc.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="SplitDlg.h" />
     <ClInclude Include="SplitThreadData.h" />
     <ClInclude Include="VerUtil.h" />
   </ItemGroup>
@@ -314,10 +318,8 @@
     </Image>
     <Image Include="bitmap1.bmp" />
     <Image Include="concat_m.bmp" />
-    <Image Include="down.bmp" />
     <Image Include="down.ico" />
     <Image Include="icon1.ico" />
-    <Image Include="up.bmp" />
     <Image Include="up.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

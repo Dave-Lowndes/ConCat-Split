@@ -8,14 +8,11 @@
 #define IDS_SPLIT_DESCRIPTION           4
 #define IDS_ALREADY_EXISTSPROMPT        5
 #define IDS_CANT_ACCESS                 6
-#define IDS_DONT_CONTINUE               7
 #define IDS_SPLIT_OK                    8
 #define IDS_SPLIT_FAILED                9
 #define IDS_CONCAT_OK                   10
 #define IDS_FAIL_JOIN                   11
-#define IDS_FAIL_JOIN_CAPTION           12
 #define IDS_FAIL_REN_TEMP               13
-#define IDS_FAIL_CREATE_TEMP            14
 #define IDS_OVERWRITE_BAT               15
 #define IDS_FAIL_CREATE_BAT             16
 #define IDS_OVERWRITE_PROMPT            17
@@ -23,6 +20,7 @@
 #define IDS_CANCEL                      19
 #define IDS_CLOSE                       20
 #define IDS_CLOSE_FOR_REG               21
+#define IDS_YES_TO_ALL                  22
 #define IDD_CONCAT                      101
 #define IDD_SPLIT                       103
 #define IDC_COPY_LIST                   1000
@@ -43,7 +41,6 @@
 #define IDC_CONCATING                   1025
 #define IDC_FNUM                        1026
 #define IDC_SIZE_CB                     1027
-#define IDC_KB_IND                      1028
 #define IDC_COMMON_RB                   1029
 #define IDC_REM_RB                      1030
 #define IDC_DEST_PATH                   1031

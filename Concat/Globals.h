@@ -15,10 +15,8 @@ LONG volatile g_bCancel;
 
 #define UWM_WORKER_FINISHED (WM_APP+3)
 
-extern TCHAR szAppName[];
-extern /*const */TCHAR szAltName[];
+extern TCHAR szConcatAppName[];
+extern /*const */TCHAR szSplitAppName[];
 
 extern BOOL bREGISTERED;
-extern HINSTANCE g_hInstance;                // Instance handle for the DLL
-extern HMODULE g_hResInst;					// Instance handle for the resource DLL
 extern const TCHAR szRegistryKey[];

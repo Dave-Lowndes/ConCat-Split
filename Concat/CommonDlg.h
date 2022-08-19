@@ -1,6 +1,9 @@
 #pragma once
 #include <optional>
 #include <vector>
+#include <afxwin.h>
+#include <span>
+
 #include "RegDataV3.h"
 
 class CPerfTimer
@@ -49,34 +52,40 @@ private:
 	static LARGE_INTEGER m_Freq; // Counts per second
 };
 
-class CommonDlgData
+class CommonDlg : public CDialog
 {
 public:
 	// Prevent inadvertent copying
-	CommonDlgData() = delete;
-	CommonDlgData( const CommonDlgData& ) = delete;
-	CommonDlgData operator=( const CommonDlgData& ) = delete;
+	CommonDlg() = delete;
+	CommonDlg( const CommonDlg& ) = delete;
+	CommonDlg operator=( const CommonDlg& ) = delete;
 
-	CommonDlgData( const std::optional<CMyRegData>& RegData ) noexcept : m_RegData{ RegData }
+	CommonDlg( UINT DlgId, const std::optional<CMyRegData>& RegData, CWnd * pParentWnd ) noexcept : m_RegData{ RegData }, CDialog( DlgId, pParentWnd )
 	{
 	}
-	void UIDisable( HWND hParentWnd ) noexcept;
-	void UIEnable( HWND hParentWnd ) noexcept;
+protected:
+	void UIDisable() noexcept;
+	afx_msg void OnSysCommand( UINT nID, LPARAM lParam );
+	void OnWorkerFinished( std::span<const int> CtrlsToDisable, LPCTSTR szMsgBoxCaption ) noexcept;
+	LRESULT OnUpdateProgress( int FileNum, LPCTSTR szPath );
+	virtual void DisplayOperationCompleteMessage() = 0;
+private:
+	std::vector<HWND> vhDisabledCtrls;	// The dialog controls that need re-enabling at the end of the operation
+	void UIEnable() noexcept;
+	afx_msg LRESULT OnThreadMessageBox( WPARAM, LPARAM );
+	afx_msg void OnClickedAbout();
+	virtual void OnCancel();
+	DECLARE_MESSAGE_MAP()
 
 	const std::optional<CMyRegData>& m_RegData;	// Reference to the registration data
 	CPerfTimer m_tim;	// Used to time the operations
-private:
-	std::vector<HWND> vhDisabledCtrls;	// The dialog controls that need re-enabling at the end of the operation
 };
 
 extern bool bUpdateChecked;
 extern HANDLE g_hTMBEvent;
 extern void TMBHandler( HWND hDlg, LPARAM lParam ) noexcept;
 
-extern int ModifyPathForControl( HDC hDC, HFONT hFont, RECT* rect, LPCTSTR pName ) noexcept;
-
 extern constexpr size_t NumberOfCharactersToDisplayValue( size_t Value ) noexcept;
-extern void CenterDialog( HWND hWnd ) noexcept;
 extern void AboutHandler( HWND hDlg, const std::optional<CMyRegData>& RegData ) noexcept;
 extern int ResMessageBox( HWND hWnd, int ResId, LPCTSTR pCaption, const int Flags ) noexcept;
 extern int ThreadMessageBox( HWND hParent, LPCTSTR lpText, LPCTSTR lpCaption, UINT Type ) noexcept;

@@ -12,57 +12,22 @@
 #include "resource.h"
 #include "RegEnc.h"
 #include "RegKeyRegistryFuncs.h"
-#include "CommonDlgData.h"
+#include "CommonDlg.h"
 #include "concat.h"
+#include "SplitDlg.h"
+#include "ConcatDlg.h"
 
 //
 // Global variables
 //
 static LONG	volatile g_cRefThisDll = 0;          // Reference count for this DLL
-HINSTANCE   g_hInstance;                // Instance handle for this DLL
-HMODULE		g_hResInst;					// Instance handle for the resource DLL
-TCHAR szAppName[] = _T("Concat");
-/*const */TCHAR szAltName[] = _T("Split");
-BOOL bREGISTERED;
+TCHAR szConcatAppName[] = _T("Concat");
+/*const */TCHAR szSplitAppName[] = _T("Split");
 
 // Should be 32-bit aligned.
 __declspec(align(4))
 // Signals cancellation of the concat/split operation.
 LONG volatile g_bCancel;
-
-//
-// DllMain is the DLL's entry point.
-//
-// Input parameters:
-//   hInstance  = Instance handle
-//   dwReason   = Code specifying the reason DllMain was called
-//   lpReserved = Reserved (do not use)
-//
-// Returns:
-//   TRUE if successful, FALSE if not
-//
-
-extern "C" int APIENTRY DllMain( HINSTANCE hInstance, DWORD dwReason, LPVOID /* lpReserved */ )
-{
-	//
-	// If dwReason is DLL_PROCESS_ATTACH, save the instance handle so it
-	// can be used again later.
-	//
-	if ( dwReason == DLL_PROCESS_ATTACH )
-	{
-		g_hInstance = hInstance;
-		g_hResInst = g_hInstance;	// Default to english resources in the main DLL itself
-
-		/* Create the ThreadMessageBox event */
-        g_hTMBEvent = CreateEvent( NULL, false, false, NULL );
-	}
-	else
-	if ( dwReason == DLL_PROCESS_DETACH )
-	{
-		CloseHandle( g_hTMBEvent );
-	}
-	return TRUE;
-}
 
 /////////////////////////////////////////////////////////////////////////////
 // Other functions
@@ -234,13 +199,14 @@ STDMETHODIMP CClassFactory::LockServer (BOOL /* fLock */) noexcept
 CShellExtension::CShellExtension () noexcept
 {
 	m_cRef = 1;
-	m_hSplitBitmap = LoadBitmap( g_hInstance, MAKEINTRESOURCE( IDB_SPLIT_MENU_BMP ) );
-	m_hConcatBitmap = LoadBitmap( g_hInstance, MAKEINTRESOURCE( IDB_CONCAT_MENU_BMP ) );
+	auto hInst = AfxGetResourceHandle();
+	m_hSplitBitmap = LoadBitmap( hInst, MAKEINTRESOURCE( IDB_SPLIT_MENU_BMP ) );
+	m_hConcatBitmap = LoadBitmap( hInst, MAKEINTRESOURCE( IDB_CONCAT_MENU_BMP ) );
 	InterlockedIncrement( &g_cRefThisDll );
 
 	/* Try to load the language resource DLL */
 	TCHAR szPath[_MAX_PATH];
-	DWORD Len = GetModuleFileName( g_hInstance, szPath, _countof( szPath ) );
+	DWORD Len = GetModuleFileName( AfxGetInstanceHandle(), szPath, _countof(szPath));
 
 	/* Truncate the ConCat.dll part, and append the language DLL name instead */
 	Len -= sizeof("ConCat.dll") - 1;
@@ -249,7 +215,7 @@ CShellExtension::CShellExtension () noexcept
 	HMODULE hMod = LoadLibrary( szPath );
 	if ( hMod != NULL )
 	{
-		g_hResInst = hMod;
+		AfxSetResourceHandle( hMod );
 #if 0
 		{
 			TCHAR szMsg[100];
@@ -261,7 +227,7 @@ CShellExtension::CShellExtension () noexcept
 	else
 	{
 		/* Use the main DLL itself as the resource DLL */
-		g_hResInst = g_hInstance;
+//		g_hResInst = g_hInstance;
 	}
 }
 
@@ -270,11 +236,14 @@ CShellExtension::~CShellExtension ()
 	InterlockedDecrement( &g_cRefThisDll );
 
 	/* Unload the language DLL */
-	if ( g_hResInst != g_hInstance )
+	auto hResInst = AfxGetResourceHandle();
+	auto hInstance = AfxGetInstanceHandle();
+
+	if ( hResInst != hInstance )
 	{
-		FreeLibrary( g_hResInst );
+		FreeLibrary( hResInst );
 		/* Reset to original "no separate resource DLL" */
-		g_hResInst = g_hInstance;
+		AfxSetResourceHandle( hInstance );
 #if 0
 		{
 			TCHAR szMsg[100];
@@ -372,47 +341,35 @@ STDMETHODIMP CShellExtension::QueryContextMenu( HMENU hMenu, UINT indexMenu, UIN
 	if ( bInsert )
 	{
 		/* If we have only 1 file selected, we are doing a split, if multiple a concatenation */
-		TCHAR szMenuText[ 80 ];
-		HBITMAP hBmp;
 
 		const size_t NumSel = GetNumSelectedItems();
 		/* Single file selected == split, multiple == concat */
-		if ( NumSel == 1 )
-		{
-			::LoadString( g_hResInst, IDS_SPLIT_MENU, szMenuText, _countof(szMenuText) );
-			hBmp = m_hSplitBitmap;
-		}
-		else
-		{
-			::LoadString( g_hResInst, IDS_CONCAT_MENU, szMenuText, _countof(szMenuText) );
-			hBmp = m_hConcatBitmap;
-		}
+		const auto [hBmp, StringID ] = ( NumSel == 1 ) ?
+									std::make_tuple( m_hSplitBitmap, IDS_SPLIT_MENU ) :
+									std::make_tuple( m_hConcatBitmap, IDS_CONCAT_MENU );
 
-		::InsertMenu( hMenu, indexMenu, MF_STRING | MF_BYPOSITION, idCmdFirst + IDOFFSET_CONCAT, szMenuText );
+		CString sMenuText( MAKEINTRESOURCE( StringID ) );
+
+		::InsertMenu( hMenu, indexMenu, MF_STRING | MF_BYPOSITION, idCmdFirst + IDOFFSET_CONCAT, sMenuText );
 
 		/* Some people take a purist view to menus having bitmaps, so it's now optional */
 		bool bDisplayBitmap = true;
 		{
-			LONG res;
-			HKEY hKey;
-
-			res = RegOpenKeyEx( HKEY_CURRENT_USER, szRegistryKey, 0, KEY_READ, &hKey );
+			CRegKey hKey;
+			LONG res = hKey.Open( HKEY_CURRENT_USER, szRegistryKey, KEY_READ );
 
 			if ( res == ERROR_SUCCESS )
 			{
 				DWORD Val;
-				DWORD dwSize = sizeof( Val );
 
 				/* Read the value */
-				res = RegQueryValueEx( hKey, _T("Options"), NULL, NULL, (LPBYTE) &Val, &dwSize );
+				res = hKey.QueryDWORDValue( _T( "Options" ), Val );
 				
 				if ( ERROR_SUCCESS == res )
 				{
 					/* Copy the settings back to the caller */
 					bDisplayBitmap = Val & 0x01;
 				}
-
-				RegCloseKey( hKey );
 			}
 		}
 
@@ -520,27 +477,37 @@ of data, which is why many CD-Rs are mislabeled as having a 680MB capacity.
   99 minutes == 445,500 sectors == 870.1MB CD-ROM == 999.3MB CD-DA
 */
 
-extern INT_PTR CALLBACK SplitDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam );
-
-void CShellExtension::SplitFiles( HWND hWnd ) noexcept
+void CShellExtension::SplitFiles( HWND /*hWnd*/ ) noexcept
 {
 	CSelPlusReg spr{ m_SelItems, m_RegData };
 
-	if ( IDOK == DialogBoxParam( g_hResInst, MAKEINTRESOURCE( IDD_SPLIT ), hWnd, SplitDlg, (LPARAM) (LPSTR) &spr ) )
-	{
-	}
+	// The parent window passed down to here isn't the top level Explorer
+	// window - which is what gets used if I don't pass this as the parent.
+	// Although that seems OK, I think it's best to do the right thing.
+	//CWnd Parent;
+	//Parent.Attach( hWnd );
+
+	CSplitDlg dlg( spr, /*&Parent*/NULL );
+	dlg.DoModal();
+
+	// Prevent destructor destroying the parent window
+	//Parent.Detach();
 }
 
-extern INT_PTR CALLBACK ConcatDlg( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam );
-
-void CShellExtension::ConCatenateFiles( HWND hWnd ) noexcept
+void CShellExtension::ConCatenateFiles( HWND /*hWnd*/ ) noexcept
 {
 	CSelPlusReg spr{ m_SelItems, m_RegData };
 
+	// See the same construct above^
+	//CWnd Parent;
+	//Parent.Attach( hWnd );
+
 	/* Do the dialog box that presents the informations */
-	if ( IDOK == DialogBoxParam( g_hResInst, MAKEINTRESOURCE( IDD_CONCAT ), hWnd, ConcatDlg, (LPARAM) (LPSTR) &spr ) )
-	{
-	}
+	CConcatDlg dlg( spr, /*&Parent*/NULL );
+	dlg.DoModal();
+
+	// Prevent destructor destroying the parent window
+	//Parent.Detach();
 }
 
 //
@@ -556,6 +523,8 @@ void CShellExtension::ConCatenateFiles( HWND hWnd ) noexcept
 
 STDMETHODIMP CShellExtension::InvokeCommand( LPCMINVOKECOMMANDINFO lpcmi ) noexcept
 {
+	AFX_MANAGE_STATE( AfxGetStaticModuleState() );
+
 	//
 	// Return an error code if we've been called programmatically or
 	// lpcmi->lpVerb contains an invalid offset.
@@ -656,12 +625,12 @@ STDMETHODIMP CShellExtension::GetCommandString( UINT_PTR idCmd, UINT uFlags, UIN
 				if ( uFlags == GCS_HELPTEXTW )
 				{
 					// Unicode
-					::LoadStringW( g_hResInst, IdStr, (LPWSTR) pszName, cchMax );
+					::LoadStringW( AfxGetResourceHandle(), IdStr, (LPWSTR) pszName, cchMax );
 				}
 				else
 				{
 					// ANSI
-					::LoadStringA( g_hResInst, IdStr, pszName, cchMax );
+					::LoadStringA( AfxGetResourceHandle(), IdStr, pszName, cchMax );
 				}
 			}
 			break;
@@ -824,3 +793,32 @@ size_t CShellExtension::GetNumSelectedItems() noexcept
 
 	return NumItems;
 }
+
+CApp theApp;
+
+BEGIN_MESSAGE_MAP( CApp, CWinApp )
+	//{{AFX_MSG_MAP(CApp)
+		// NOTE - the ClassWizard will add and remove mapping macros here.
+		//    DO NOT EDIT what you see in these blocks of generated code!
+	//}}AFX_MSG_MAP
+END_MESSAGE_MAP()
+
+BOOL CApp::InitInstance()
+{
+	CWinApp::InitInstance();
+
+	/* Create the ThreadMessageBox event */
+	g_hTMBEvent = CreateEvent( NULL, false, false, NULL );
+
+	return TRUE;
+}
+
+int CApp::ExitInstance()
+{
+	CloseHandle( g_hTMBEvent );
+	g_hTMBEvent = NULL;
+
+	return CWinApp::ExitInstance();
+}
+
+

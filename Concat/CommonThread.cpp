@@ -49,7 +49,7 @@ void InitializeTransferBuffers()
 	}
 }
 
-unsigned __stdcall CommonWriterThread( void* /*pParams*/ )
+void __stdcall CommonWriterThread( void )
 {
 	size_t CurBuf = 0;
 #if _DEBUG
@@ -104,8 +104,7 @@ unsigned __stdcall CommonWriterThread( void* /*pParams*/ )
 			/* It must be the signal to quit */
 			break;
 		}
-	} while ( true );
-
-	return 0;
+	}
+	while ( true );
 }
 

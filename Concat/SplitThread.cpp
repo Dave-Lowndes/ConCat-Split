@@ -3,34 +3,39 @@
 #include <vector>
 #include <process.h>
 #include <filesystem>
+#include <memory>
+
 #include "CommonThreadData.h"
 #include "CommonThread.h"
 #include "SplitThreadData.h"
 #include "Globals.h"
 #include "resource.h"
-#include "CommonDlgData.h"
+#include "CommonDlg.h"
 
 using std::wstring;
 using std::vector;
 namespace fs = std::filesystem;
+using std::unique_ptr;
 
-unsigned __stdcall SplitControlThread_Reader( void* pParams )
+unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 {
 	size_t CurrentBuffer = 0;
 
 	InitializeTransferBuffers();
 
-	/* Start the split writer thread */
-	UINT tid;
-	::CHandle hThread( reinterpret_cast<HANDLE>(_beginthreadex( NULL, 0, CommonWriterThread, NULL, 0, &tid )) );
+	/* Start the writer thread */
+	std::thread WriterThread( CommonWriterThread );
 
-	// Get passed a reference (non-null pointer) to the thread data
-	SplitThreadData& std = *(static_cast<SplitThreadData*>(pParams));
+	// Treat the passed data as a reference
+	SplitThreadData& std = *ustd;
 
 	DWORD dwError = ERROR_SUCCESS;
 
 	try
 	{
+		// Remembers the last set position of the progress control so that I don't tell it to do something unnecessarily
+		int PrevProgPos = 0;
+
 		size_t indx = 0;
 		for ( vector<HandlePlusSize>::const_iterator it = std.vSplitFiles.begin();
 			(it != std.vSplitFiles.end()) && !g_bCancel && (dwError == ERROR_SUCCESS);
@@ -41,17 +46,24 @@ unsigned __stdcall SplitControlThread_Reader( void* pParams )
 			PostMessage( std.hParentWnd, UWM_UPDATE_PROGRESS, indx, 0 );
 
 			{
-				ULARGE_INTEGER SizeRemaining;
-				SizeRemaining.QuadPart = it->m_SizeToCopy;
+				ULARGE_INTEGER SizeRemaining{ .QuadPart = it->m_SizeToCopy };
 
 				while ( (SizeRemaining.QuadPart > 0) && (dwError == ERROR_SUCCESS) && !g_bCancel )
 				{
 					/* Update the progress control */
 					{
-						//TODO Why * 0x8000 David?
-						const int ProgPos = static_cast<int>(((std.SrcFileSize - std.SrcRemaining) * 0x8000) / std.SrcFileSize);
+						// +1 fiddle to ensure 100%
+						const int ProgPos = 1 + static_cast<int>(((std.SrcFileSize - std.SrcRemaining) * PROGRESS_CTL_MAX) / std.SrcFileSize);
 
-						PostMessage( std.hProgress, PBM_SETPOS, ProgPos, 0 );
+						if ( ProgPos != PrevProgPos )
+						{
+							// The progress bar's position lags what it's set to since MS changed it!
+							// Trick to work around it: https://stackoverflow.com/questions/22469876/progressbar-lag-when-setting-position-with-pbm-setpos
+							PostMessage( std.hProgress, PBM_SETPOS, ProgPos+1, 0 );
+							PostMessage( std.hProgress, PBM_SETPOS, ProgPos, 0 );
+							PrevProgPos = ProgPos;
+
+						}
 					}
 
 					/* Handle the next chunk from the source file */
@@ -93,11 +105,8 @@ unsigned __stdcall SplitControlThread_Reader( void* pParams )
 #endif
 
 							/* Save the file handle & data length with the buffer */
-							rtb.fh = it->m_fh;
-							rtb.SizeOfData = dwBytesRead;
-
 							/* Signal to the writer that there's something waiting for it */
-							rtb.SetBufferFilled();
+							rtb.SetBufferFilled( it->m_fh, dwBytesRead );
 
 							/* Use the next buffer */
 							CurrentBuffer = (CurrentBuffer + 1) % _countof( g_TransBuffers );
@@ -124,7 +133,7 @@ unsigned __stdcall SplitControlThread_Reader( void* pParams )
 #endif
 				{
 					/* For the batch file, we only want the filename (no path) */
-					const fs::path pat( it->szFName );
+					const fs::path pat( it->sFName );
 					const wstring sFileName = pat.filename();
 					CT2CA pA( sFileName.c_str() );
 
@@ -159,7 +168,7 @@ unsigned __stdcall SplitControlThread_Reader( void* pParams )
 		g_StopCommonWriterThread.SetEvent();
 
 		/* Wait for the thread to finish */
-		WaitForSingleObject( hThread, 60000 );
+		WriterThread.join();
 
 		if ( !g_bCancel && (dwError == ERROR_SUCCESS) )
 		{
@@ -193,8 +202,7 @@ unsigned __stdcall SplitControlThread_Reader( void* pParams )
 				it.m_DeleteOnDestroy = false;
 			}
 
-			MessageBeep( MB_OK );
-			//			ResMessageBox( hWnd, IDS_SPLIT_OK, szAltName, MB_OK | MB_ICONEXCLAMATION );
+			//MessageBeep( MB_OK );
 		}
 		else
 		{
@@ -213,14 +221,11 @@ unsigned __stdcall SplitControlThread_Reader( void* pParams )
 					0,
 					NULL );
 
-				TCHAR szMsg[1024];
-				TCHAR szFmt[256];
+				CString sFmt(MAKEINTRESOURCE( IDS_SPLIT_FAILED ));
+				CString sMsg;
+				sMsg.Format( sFmt, (LPCTSTR) lpMsgBuf );
 
-				LoadString( g_hResInst, IDS_SPLIT_FAILED, szFmt, _countof( szFmt ) );
-
-				wsprintf( szMsg, szFmt, (LPCTSTR) lpMsgBuf );
-
-				ThreadMessageBox( std.hParentWnd, szMsg, szAltName, MB_OK | MB_ICONERROR );
+				ThreadMessageBox( std.hParentWnd, sMsg, szSplitAppName, MB_OK | MB_ICONERROR );
 
 				// Free the buffer.
 				LocalFree( lpMsgBuf );
@@ -237,9 +242,6 @@ unsigned __stdcall SplitControlThread_Reader( void* pParams )
 
 	/* Tell the main UI thread that we've done (and to reset the UI) */
 	PostMessage( std.hParentWnd, UWM_WORKER_FINISHED, 0, reinterpret_cast<LPARAM>(&std) );
-
-	// No longer need this thread data
-	delete& std;
 
 	return dwError;
 }

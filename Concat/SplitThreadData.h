@@ -9,13 +9,12 @@ class HandlePlusSize
 public:
 	CFileHandle m_fh;			// The file handle
 	UINT64 m_SizeToCopy;	// The number of bytes to copy to the file
-	TCHAR szFName[_MAX_PATH];	// The file name
+	std::wstring sFName;	// The file name
 	bool m_DeleteOnDestroy;
 
 	HandlePlusSize() noexcept
 	{
 		m_DeleteOnDestroy = true;	// assume something is going to go wrong and the file should be tidied up on destruction
-		szFName[0] = _T( '\0' );
 		m_SizeToCopy = 0;
 	}
 
@@ -25,18 +24,22 @@ public:
 		{
 			if ( m_DeleteOnDestroy )
 			{
-				/* Closing allocated large files on slow (USB flash drives is very slow.
+				/* Closing allocated large files on slow (USB flash drives) is very slow.
 				 * This allows it to be done much faster.
 				 */
 				bool bDeletedOnClose;
 				{
-					FILE_DISPOSITION_INFO fdi;
-					fdi.DeleteFile = true;
+					FILE_DISPOSITION_INFO fdi{ .DeleteFile = true };
+
 					bDeletedOnClose = SetFileInformationByHandle( m_fh, FileDispositionInfo, &fdi, sizeof( fdi ) ) ? true : false;
 					if ( !bDeletedOnClose )
 					{
 						DWORD dwe = GetLastError();
-						dwe = dwe;
+						// This is the normal error, what is the situation of it's something else?
+						if ( dwe != ERROR_ACCESS_DENIED )
+						{
+							_ASSERT( false );
+						}
 					}
 				}
 
@@ -45,7 +48,7 @@ public:
 				/* If the close has deleted it, there's no need to delete it this way as well */
 				if ( !bDeletedOnClose )
 				{
-					DeleteFile( szFName );
+					DeleteFile( sFName.c_str() );
 				}
 			}
 		}
@@ -65,11 +68,12 @@ public:
 	SplitThreadData( const SplitThreadData& ) = delete;
 	SplitThreadData operator=( const SplitThreadData& ) = delete;
 
-	SplitThreadData( HWND hProg, HWND hParent, const std::wstring& srcFName, UINT64 srcFSize, size_t numNumerics, HANDLE hsrc ) :
+	SplitThreadData( HWND hProg, HWND hParent, const std::wstring& srcFName, UINT64 srcFSize, size_t numNumerics, HANDLE hsrc, UINT64 remaining ) :
 		sSrcFileName{ srcFName },
 		SrcFileSize{ srcFSize },
 		NumNumericChars{ numNumerics },
 		hSrcFile{ hsrc },
+		SrcRemaining{ remaining },
 		CommonThreadData( hProg, hParent )
 	{
 	}

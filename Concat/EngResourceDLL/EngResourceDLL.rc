@@ -86,8 +86,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,0,1,0
- PRODUCTVERSION 6,0,1,0
+ FILEVERSION 7,0,0,0
+ PRODUCTVERSION 7,0,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -104,12 +104,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "JD Design"
             VALUE "FileDescription", "File Concatenate/Split Context Menu Utility"
-            VALUE "FileVersion", "6.0.1.0"
+            VALUE "FileVersion", "7.0.0.0"
             VALUE "InternalName", "ConCat"
             VALUE "LegalCopyright", "Copyright © JD Design 1996-2022"
             VALUE "OriginalFilename", "ConCat.dll"
             VALUE "ProductName", "JD Design ConCat/Split"
-            VALUE "ProductVersion", "6.0.1.0"
+            VALUE "ProductVersion", "7.0.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -164,8 +164,7 @@ BEGIN
     GROUPBOX        "Split Size",IDC_STATIC,7,3,265,43
     CONTROL         "&Common Drive Sizes",IDC_COMMON_RB,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,12,15,130,10
     CONTROL         "&Removable Media Sizes",IDC_REM_RB,"Button",BS_AUTORADIOBUTTON,12,30,130,10
-    COMBOBOX        IDC_SIZE_CB,154,19,100,78,CBS_DROPDOWN | WS_VSCROLL | WS_GROUP | WS_TABSTOP
-    LTEXT           "KB",IDC_KB_IND,258,21,9,8
+    COMBOBOX        IDC_SIZE_CB,151,19,100,78,CBS_DROPDOWN | WS_VSCROLL | WS_GROUP | WS_TABSTOP
     GROUPBOX        "Destination",IDC_STATIC,7,56,266,48
     EDITTEXT        IDC_DEST_NAME,11,83,199,14,ES_AUTOHSCROLL | ES_READONLY
     PUSHBUTTON      "Cha&nge...",IDC_CHANGE_DESTN,216,83,50,14,WS_GROUP
@@ -219,15 +218,12 @@ BEGIN
     IDS_SPLIT_DESCRIPTION   "Split file into several smaller ones"
     IDS_ALREADY_EXISTSPROMPT 
                             "The file ""%s"" already exists.\n\nDo you want to overwrite it?"
-    IDS_CANT_ACCESS         "The 'To' file you have specified can't be used.\n\n%s"
-    IDS_DONT_CONTINUE       "Failed to open the source file.\n\nYou should not continue with this operation"
+    IDS_CANT_ACCESS         "The file you have specified '%s' can't be used.\n\n%s"
     IDS_SPLIT_OK            "Split has successfully created your files"
     IDS_SPLIT_FAILED        "Failed to split the file\n\n%s"
     IDS_CONCAT_OK           "ConCat has successfully joined your files"
     IDS_FAIL_JOIN           "Failed while joining file '%s'\n\n%s"
-    IDS_FAIL_JOIN_CAPTION   "Failed to Concatenate File"
     IDS_FAIL_REN_TEMP       "Failed to rename temporary target file.\n\nThe temporary file still exists and can be manually renamed to your desired target name."
-    IDS_FAIL_CREATE_TEMP    "Failed to create temporary file.\n\nThe directory path may be invalid, you may not have access to that directory, or the disk may be full."
     IDS_OVERWRITE_BAT       "The batch file ""%s"" already exists.\n\nDo you want to overwite it?"
 END
 
@@ -239,6 +235,7 @@ BEGIN
     IDS_CANCEL              "Cancel"
     IDS_CLOSE               "Close"
     IDS_CLOSE_FOR_REG       "If you've entered your registration details, press Close to close the dialog to have the changes take effect"
+    IDS_YES_TO_ALL          "&Answer Yes to overwrite all"
 END
 
 #endif    // English (United Kingdom) resources

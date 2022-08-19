@@ -45,9 +45,9 @@ public:
 	{
 		return static_cast<DWORD>(vBuffer.size());
 	}
-	HANDLE fh;	// The file handle
-	DWORD SizeOfData;	// The size of the data in the buffer. Because of Win32 API limitations, the buffer size is always < 32-bits (4GB)
-	DWORD WriteErrorValue;	// GetLastError value if write fails
+	HANDLE fh = INVALID_HANDLE_VALUE;	// The file handle
+	DWORD SizeOfData = 0;	// The size of the data in the buffer. Because of Win32 API limitations, the buffer size is always < 32-bits (4GB)
+	DWORD WriteErrorValue = ERROR_SUCCESS;	// GetLastError value if write fails
 private:
 	std::vector<BYTE> vBuffer;
 	CEvent evtBufferFilled;		// A signal from the reader to the writer that the buffer is ready
@@ -58,8 +58,11 @@ public:
 	{
 		evtBufferEmptied.SetEvent();
 	}
-	void SetBufferFilled()
+	void SetBufferFilled( HANDLE hDestnFile, DWORD NumBytes )
 	{
+		fh = hDestnFile;
+		SizeOfData = NumBytes;
+
 		evtBufferFilled.SetEvent();
 	}
 	void WaitForEmpty()
@@ -96,3 +99,5 @@ public:
 	int RetVal;
 };
 
+// Number of steps in the progress control
+#define PROGRESS_CTL_MAX 20

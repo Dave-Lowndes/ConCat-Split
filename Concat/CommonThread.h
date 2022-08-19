@@ -1,6 +1,6 @@
 #pragma once
 #include <afxmt.h>
 
-extern unsigned __stdcall CommonWriterThread( void* /*pParams*/ );
+extern void __stdcall CommonWriterThread( void );
 extern /*const */DWORD Granularity;
 extern void InitializeTransferBuffers();

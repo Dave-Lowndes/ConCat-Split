@@ -6,6 +6,20 @@
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
 <title>ConCat/Split</title>
 <style type="text/css"> 
+@media screen {
+    body {
+        margin: 2em auto;
+        width: 60em;
+    }
+}
+
+@media print {
+    body {
+        /* no point in having an additional margin for printing */
+        margin: 0px;
+    }
+}
+
 body {
 	font-family: verdana, geneva, Arial, Helvetica, sans-serif;
 	font-size: small;
@@ -29,39 +43,54 @@ body {
 .style3 {
 	list-style-type: lower-roman;
 }
+/* Remove the bullet from the list items in the table of contents */
+ol#TableOfContents li
+{
+	list-style-type:none;        
+}
+li {
+    margin-bottom: 0.5em;
+}
+
 </style>
 </head>
 
 <body style="left:10px">
 
-<h1>ConCat/Split V6</h1>
+<h1>ConCat/Split V7</h1>
+<ol id="TableOfContents">
+	<li><a href="#Installation">Installation</a></li>
+	<li><a href="#HowToUse">Using Concat/Split</a></li>
+	<li><a href="#Registering">Register</a></li>
+	<li><a href="#Updates">Updates</a></li>
+	<li><a href="#Removal">Uninstall/Removal</a></li>
+	<li><a href="revision_history.htm" target="_blank">Version History</a></li>
+</ol>
+<h2>Overview</h2>
 <p>ConCat/Split is a Windows Explorer context menu extension that provides two 
 complementary facilities:</p>
 <ol>
 	<li>A split facility that lets you easily convert a single large file 
-	into several smaller ones. You can copy these smaller files onto removable 
-	media such as a memory card, floppy disks, or CDs, or send them through 
-	email systems that will not allow large attachments.</li>
+	into several smaller ones. You can copy these smaller files onto multiple removable 
+	media devices or email them as attachments where you may be prevented from 
+	doing so with the original file size.</li>
 	<li>A file concatenation facility that performs the same operation as the 
 	command line &quot;copy /b SrcFile1+SrcFile2 [+SrcFileN] DestnFile&quot; operation. 
 	With ConCat, you can append any number of files and store the result as a 
-	new file, or overwrite one of the original files.</li>
+	new file, or overwrite an existing file.</li>
 </ol>
-<p>ConCat runs under Windows XP, Windows Vista, Windows 7 (and the server 
-variants of those operating systems), and is available for x86 (32-bit) and x64 
+<p>ConCat runs under Windows 7 SP2 and later versions of Windows, and is available for x86 (32-bit) and x64 
 (64-bit) systems.</p>
-<h4>ConCat - Copyright <span class="style1">©</span> 1996-2012 JD Design, All Rights Reserved</h4>
-<h2>Installation</h2>
+<h4>ConCat/Split - Copyright <span class="style1">©</span> 1996-2022 JD Design, All Rights Reserved</h4>
+<h2><a name="Installation"></a>Installation</h2>
 <p>We recommend that you unzip the ConCat.zip file and run the Setup.exe from 
 your hard disk. </p>
 <p>You need to run the installation from an account with access to Administrator 
 privileges.</p>
-<p>If you don&#39;t have an up-to-date copy of the Windows Installer, the setup 
-program may download it. </p>
 <p>The last step of Setup informs you that ConCat is installed and briefly 
 tells you how to use it. <strong>If you&#39;re upgrading an existing version, we 
 recommend that you log off and back on again, or restart your computer to ensure 
-Explorer has unloaded the prior version.</strong> </p>
+Explorer has unloaded the prior version.</strong></p>
 <p>If your system administrator has applied the EnforceShellExtensionSecurity policy to limit 
 the use of shell extensions to approved ones, they will need to add ConCat to 
 that list in the registry: </p>
@@ -69,8 +98,7 @@ that list in the registry: </p>
 under the HKLM\Software\Microsoft\Windows\CurrentVersion\Shell 
 Extensions\Approved branch.</p>
 <h3>Administration Installation</h3>
-<p>The installer supports the MSI administrative installation options. </p>
-<p>For example:</p>
+<p>The installer supports the MSI administrative installation options. For example:</p>
 <p class="IndentedInstruction">msiexec /jm concat.msi</p>
 <p>&quot;Advertises&quot; ConCat on all the machine&#39;s users Programs menu items. When a 
 user invokes the Start, Programs, JD Design, ConCat, ConCat-Split Documentation option, the 
@@ -93,14 +121,13 @@ installation of ConCat will complete.</p>
 	</tr>
 	</table>
 <p>Setup will also add relevant registry entries and Start menu items.</p>
-<h2>How Do You Use ConCat?</h2>
-<h3>Split</h3>
+<h2><a name="HowToUse"></a>How do you use ConCat?</h2>
+<h3><a name="SplitUse"></a>Split a single large file into multiple smaller ones</h3>
 <p>Use Windows Explorer and select the file that you want to split. Display the 
-context menu by right-clicking (the secondary mouse button), or use the Explorer 
-window&#39;s File menu. Choose the &quot;Split File...&quot; menu item to display the Split 
+context menu by right-clicking (the secondary mouse button). Choose the &quot;Split File...&quot; menu item to display the Split 
 dialog box:</p>
-<p><img alt="Split Context Menu" height="212" src="splitmenu.png" width="645" /></p>
-<p><img alt="Split Dialog" height="391" src="splitdialog.png" width="348" /></p>
+<p><img alt="Split Context Menu" height="131" src="splitmenu.png" width="440" /></p>
+<p><img alt="Split Dialog" height="385" src="splitdialog.png" width="508" /></p>
 <p>Operation of this dialog box is straightforward. The &quot;Split Size&quot; group radio 
 buttons populate the combo box list with either:</p>
 <ol class="style2">
@@ -108,33 +135,41 @@ buttons populate the combo box list with either:</p>
 	<li>The free space size of any removable drives on your system that 
 	have media inserted in them. When you select this option, it may take a few 
 	seconds to find what&#39;s available. If there are no removable drives with 
-	media inserted , the combo list will be empty.</li>
+	media inserted, the combo list will be empty.</li>
 </ol>
-<p>You can enter a custom size setting by typing a value (in KB) in the edit 
-field of the combo box.<br />
-<br />
-The destination names field shows the range of file names that you will get from 
-the split operation. The default location for the split files is the same 
+<p>You can enter a custom size setting by typing a value (in bytes) in the edit 
+field of the combo box.</p>
+<p>The destination names field shows the range of file names that the split operation 
+will produce. The default location for the split files is the same 
 location as the original file, however you can change the location and name of the destination 
 files if you use the Change button.</p>
+<p>You can opt to create a batch file that will rejoin the 
+	files easily on any MS-DOS compatible system that does not have Split/ConCat 
+	installed.</p>
 <p>To perform the split operation, press the &quot;Split File&quot; button.</p>
-<p>Note: the split operation is non-destructive; it will not delete your 
-original file.</p>
-<h3>Concatenate</h3>
+<p>Notes:</p>
+<ul>
+	<li>The split operation is non-destructive; it will not delete your 
+original file.</li>
+	<li>The last split size is saved between uses.</li>
+</ul>
+<h3><a name="ConcatUse"></a>Concatenate split files to create a copy of the 
+original</h3>
 <p>For ease of use we recommend that you copy the individual files that you have previously split into a folder on 
 your hard disk.</p>
-<p>Using Windows Explorer, select the files that you want to concatenate. Display 
-the context menu by right-clicking (the secondary mouse button), or use the 
-Explorer window&#39;s File menu. Choose the &quot;Concatenate Files...&quot; menu item to 
+<p>Using Windows Explorer, select the files that you want to join. Display 
+the context menu by right-clicking (the secondary mouse button) in the selection. Choose the &quot;Concatenate Files...&quot; menu item to 
 display the Concatenate dialog box.</p>
 <p>
-<img alt="Concatenate Context Menu" height="262" src="concatmenu.png" width="653" /></p>
+<img alt="Concatenate Context Menu" height="191" src="concatmenu.png" width="434" /></p>
 <p>
-<img alt="Concatenate Dialog" height="306" src="concatdialog.png" width="343" />&nbsp;</p>
+<img alt="Concatenate Dialog" height="359" src="concatdialog.png" width="508" />&nbsp;</p>
 <p>Important: The selected order of the files in the Explorer window determines 
 the order that the files are copied. The first file is always the one with the 
 focus (the fine dotted rectangle around it). Here is how you can ensure that you get the files 
-copied in the correct order:</p>
+copied in the correct order. Note: this is unnecessary if you've split the files and 
+retained the numeric naming convention - as the selected files are automatically 
+sorted in the Concat dialog's list.</p>
 <ol class="style3">
 	<li>Select the first file.</li>
 	<li>Hold down the shift key and click the last file that you want.</li>
@@ -142,63 +177,58 @@ copied in the correct order:</p>
 	to bring up the context menu.</li>
 	<li>Choose the &quot;Concatenate Files...&quot; item to display the Concatenate Files 
 	dialog box.</li>
-	<li>The order that the files appear in the &quot;Copy&quot; list box, is the 
+	<li>The order that the files appear in the &quot;Join&quot; list box, is the 
 	order that they will be concatenated. Ensure that this is the order that you 
 	want.</li>
 </ol>
-<p>In an unregistered version, the default destination file name is the same as 
-the first selected file. If you want to alter this, change the &quot;To&quot; file name 
-before you press the OK button.</p>
-<h4>Context Menu Bitmap Display</h4>
+<p>If the file order isn't correct in the Join list, you can re-order them by 
+selecting the file in the Join list box and use the up and down buttons as 
+required. The buttons respond to the keyboard accelerators Alt+U 
+	&amp; Alt+D.</p>
+<h4><a name="ContextMenuBitmap"></a>Context Menu Bitmap Display</h4>
 <p>If you&#39;d prefer not to have the bitmap displayed on the Explorer context
 menu, add the following registry setting:</p>
 <p>HKEY_CURRENT_USER\Software\JD Design\ConCat</p>
 <p>Create a DWORD value named &quot;Options&quot; and set the value to 0 to disable
 the bitmap.</p>
-<h2>Registered Version Features</h2>
-<p>The registered version of ConCat adds the following features: </p>
-<ul>
-	<li>The ConCat dialog box has the ability to re-order the files you want to 
-	join, making it unimportant to select the files in the correct order in the 
-	first place. Select the file in the Copy list box and use the up and down 
-	buttons as required. The buttons respond to the keyboard accelerators Alt+U 
-	&amp; Alt+D.</li>
-	<li>Automatically selects the correct destination filename for files that 
-	are split and retain their Split/ConCat naming convention.</li>
-	<li>The ability to automatically create a batch file that will rejoin the 
-	files easily on any MS-DOS compatible system that does not have Split/ConCat 
-	installed.</li>
-	<li>The last split size is saved between uses.</li>
-</ul>
-<h2>Registering</h2>
-<p>The easiest way to register is online using one of the secure payment 
-facilities on our web site. </p>
+<h3><a name="BatchFileLimitation"></a>Batch file limitation</h3>
+<p>Although Concat/Split can handle Unicode file names, the ability to handle 
+them is currently limited in Windows and only work from either 
+an existing command prompt that is set to have UTF-8 as its code page (using chcp 65001), or via Windows File Explorer when Windows has the setting "Use 
+Unicode UTF-8 for worldwide language support" 
+enabled.</p>
+<p>Consequently, the split batch file is not a Unicode file, which means that any file 
+name characters that are not in the current code page are replaced with '?'. 
+This happens to have the effect that when the command runs, because the '?' is a 
+single character wildcard, it may well match the intended file. We don't recommend relying on this, so avoid the situation and ensure any files that you 
+split (and where you intend to use the batch file to re-join) only use 
+characters that are valid in your region.</p>
+<h2><a name="Registering"></a>Registering</h2>
+<p>Although Concat/Split is now free to use, if you'd like to contribute to its 
+maintenance, you can do so online using one of the secure payment 
+facilities on our web site. The core source code is available for
+<a href="https://github.com/Dave-Lowndes/ConCat-Split" target="_blank">viewing 
+on GitHub</a>.</p>
 <p>When you receive your registration information, enter your registered name 
 and number into the About dialog box. You can access this dialog from the main 
-ConCat dialog About button. </p>
-<p>You must enter the information exactly as it appears. The case, spaces, and 
-punctuation of the name are significant, The registration number is composed of the 
-characters 0-9, A-F and again, the case of the letters is significant. If you 
-register the set of utilities, be sure to use the correct registration number 
-for each product. </p>
+ConCat dialog About button.</p>
 <p>You can check that registration has worked by re-displaying the About box 
 from the main dialog. When the product is successfully registered your 
 registration name is displayed in the About dialog rather than the entry fields.</p>
-<h2>Updates</h2>
-<p>Any updates to the current version are free to registered users by 
+<h2><a name="Updates"></a>Updates</h2>
+<p>Any updates to the current version are free by 
 downloading the latest version from our web site. You may need to email us for 
-an updated registration number. </p>
-<h2>Removal</h2>
-<p>Locate the &quot;ConCat&quot; item in the Control Panel, Add/Remove Programs list.
-</p>
-<h2><a href="revision_history.htm" target="_blank">Revision History</a></h2>
+an updated registration number if you have a pre-V7 registration.</p>
+<h2><a name="Removal"></a>Removal</h2>
+<p>Locate the &quot;ConCat&quot; item in the Control Panel, Add/Remove Programs list 
+("Apps &amp; features" in newer versions of Windows).</p>
 <h2>Support</h2>
 <p>We maintain a list of frequently asked questions on our web site. If you&nbsp; 
 have a technical question, please check there to see if you can find an answer 
-before contacting us. </p>
+before contacting us.</p>
 <p>We will post the latest versions of our utilities on our web site as soon as 
 they are available, so please take a look to keep up to date and to see what 
-other software and services we offer. </p>
+other software and services we offer.</p>
 <p>Web Site: <a href="http://www.jddesign.co.uk/" target="_blank">http://www.jddesign.co.uk/ 
 </a> </p>
 <p>If you have any suggestions for improvements to any of our utilities, please 
