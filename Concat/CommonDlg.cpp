@@ -214,11 +214,11 @@ void CommonDlg::OnWorkerFinished( std::span<const int> CtrlsToDisable, LPCTSTR s
 	}
 	else
 	{
-		DisplayOperationCompleteMessage();
-
 		/* If we've not canceled the operation */
 		if ( !g_bCancel )
 		{
+			DisplayOperationCompleteMessage();
+
 			/* Close the dialog - we're all done */
 			EndDialog( IDCANCEL );
 		}
