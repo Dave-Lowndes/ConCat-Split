@@ -19,10 +19,6 @@ bool bUpdateChecked = false;
 // The signalling event for the ThreadMessageBox facility
 HANDLE g_hTMBEvent;
 
-LARGE_INTEGER CPerfTimer::m_Freq;
-
-BOOL bREGISTERED;
-
 void CommonDlg::UIEnable() noexcept
 {
 	/* Re-enable the control windows */
@@ -168,12 +164,6 @@ void AboutHandler( HWND hDlg, const optional<CMyRegData>& RegData ) noexcept
 			}
 		}
 	}
-}
-
-int ResMessageBox( HWND hWnd, int ResId, LPCTSTR pCaption, const int Flags ) noexcept
-{
-	CString sMsg(MAKEINTRESOURCE(ResId));
-	return(MessageBox( hWnd, sMsg, pCaption, Flags ));
 }
 
 int ThreadMessageBox( HWND hParent, LPCTSTR lpText, LPCTSTR lpCaption, UINT Type ) noexcept

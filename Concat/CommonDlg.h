@@ -40,16 +40,12 @@ public:
 	}
 	static unsigned __int64 AsMilliSeconds( __int64 period ) noexcept
 	{
-		//#ifdef _DEBUG
-		//		return period / (m_Freq.QuadPart / 100000);
-		//#else
 		return period / (m_Freq.QuadPart / 1000);
-		//#endif
 	}
 
 private:
 	LARGE_INTEGER m_Start;
-	static LARGE_INTEGER m_Freq; // Counts per second
+	static inline LARGE_INTEGER m_Freq; // Counts per second
 };
 
 class CommonDlg : public CDialog
@@ -87,5 +83,4 @@ extern void TMBHandler( HWND hDlg, LPARAM lParam ) noexcept;
 
 extern constexpr size_t NumberOfCharactersToDisplayValue( size_t Value ) noexcept;
 extern void AboutHandler( HWND hDlg, const std::optional<CMyRegData>& RegData ) noexcept;
-extern int ResMessageBox( HWND hWnd, int ResId, LPCTSTR pCaption, const int Flags ) noexcept;
 extern int ThreadMessageBox( HWND hParent, LPCTSTR lpText, LPCTSTR lpCaption, UINT Type ) noexcept;

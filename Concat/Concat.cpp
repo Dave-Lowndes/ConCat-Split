@@ -21,23 +21,12 @@
 // Global variables
 //
 static LONG	volatile g_cRefThisDll = 0;          // Reference count for this DLL
-TCHAR szConcatAppName[] = _T("Concat");
-/*const */TCHAR szSplitAppName[] = _T("Split");
 
 // Should be 32-bit aligned.
 __declspec(align(4))
 // Signals cancellation of the concat/split operation.
 LONG volatile g_bCancel;
 
-/////////////////////////////////////////////////////////////////////////////
-// Other functions
-
-const TCHAR szRegistryKey[] = _T("Software\\JD Design\\ConCat");
-
-/////////////////////////////////////////////////////////////////////////////
-// In-process server functions
-
-//
 // DllGetClassObject is called by the shell to create a class factory object.
 //
 // Input parameters:

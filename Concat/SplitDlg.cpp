@@ -21,6 +21,7 @@
 #include "resource.h"
 #include "SplitThreadData.h"
 #include "CheckForUpdate.h"
+#include "AboutDlg.h"	// For ResMessageBox
 #include "SplitDlg.h"
 
 using std::wstring;

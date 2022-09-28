@@ -15,8 +15,8 @@ LONG volatile g_bCancel;
 
 #define UWM_WORKER_FINISHED (WM_APP+3)
 
-extern TCHAR szConcatAppName[];
-extern /*const */TCHAR szSplitAppName[];
+constexpr inline TCHAR szConcatAppName[]{ _T( "Concat" ) };
+constexpr inline TCHAR szSplitAppName[]{ _T( "Split" ) };
 
-extern BOOL bREGISTERED;
-extern const TCHAR szRegistryKey[];
+inline BOOL bREGISTERED{FALSE};
+constexpr inline TCHAR szRegistryKey[]{ _T( "Software\\JD Design\\ConCat" ) };
