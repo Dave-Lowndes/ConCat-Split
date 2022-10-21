@@ -110,62 +110,6 @@ constexpr size_t NumberOfCharactersToDisplayValue( size_t Value ) noexcept
 	return DigitWidth;
 }
 
-void AboutHandler( HWND hDlg, const optional<CMyRegData>& RegData ) noexcept
-{
-	RegCheckData rcd( RegData, AfxGetInstanceHandle(), ProductCode::Concat );
-
-	HINSTANCE hResInst = AfxGetResourceHandle();
-
-	DialogBoxParam( hResInst, MAKEINTRESOURCE(IDD_ABOUT_DLG), hDlg, (DLGPROC) AboutDlg, reinterpret_cast<LPARAM>(&rcd));
-
-	if ( !bREGISTERED )
-	{
-		/* No point saving if there's nothing there! */
-		if ( !rcd.sReturnedRegKey.empty() )
-		{
-			/* Store the entry to the registry ready for the next time */
-			SaveMyRegistrationToTheRegistry( szRegistryKey, rcd.sReturnedRegKey );
-
-			/* Message: If you've entered your registration details, press Close or Cancel to close the TouchPro dialog to have the changes take effect" */
-			ResMessageBox( hDlg, IDS_CLOSE_FOR_REG, szConcatAppName, MB_OK );
-		}
-		else
-		{
-			TASKDIALOGCONFIG tdc{ sizeof(tdc) };
-			const TASKDIALOG_BUTTON MyButtons[] = 
-			{
-				{IDYES, L"I would like to &contribute.\nTake me to the registration page" }
-				,{IDNO, L"&No thanks, not today" }
-			};
-
-			tdc.hwndParent = hDlg;
-			tdc.hInstance = hResInst;
-
-			tdc.pButtons = MyButtons;
-			tdc.cButtons = _countof( MyButtons );
-
-			tdc.dwFlags = /*TDF_ALLOW_DIALOG_CANCELLATION | */TDF_POSITION_RELATIVE_TO_WINDOW | TDF_USE_COMMAND_LINKS_NO_ICON;
-			tdc.pszWindowTitle = szConcatAppName;
-			tdc.pszMainInstruction = L"Thanks for using Concat/Split";
-			tdc.pszContent = L"If you find it useful and would like to contribute to its upkeep, that's great.";
-			tdc.pszMainIcon = TD_INFORMATION_ICON;
-//			tdc.pszFooter = L"If you supply your name and email address in the optional note with your donation, we will send you a registration code that will remove this reminder.";
-
-			int tdRetVal;
-
-			auto hRes = TaskDialogIndirect( &tdc, &tdRetVal, NULL, NULL );
-
-			if ( SUCCEEDED( hRes ) )
-			{
-				if ( tdRetVal == IDYES )
-				{
-					ShellExecute( hDlg, nullptr, L"https://www.jddesign.co.uk/register.htm"/*L"https://www.paypal.com/donate/?hosted_button_id=PLMLSUWPLBSDY"*/, nullptr, nullptr, SW_SHOWNORMAL);
-				}
-			}
-		}
-	}
-}
-
 int ThreadMessageBox( HWND hParent, LPCTSTR lpText, LPCTSTR lpCaption, UINT Type ) noexcept
 {
 	CThreadMessageBoxParams mbp{ .pText = lpText, .pCaption = lpCaption, .Type = Type, .RetVal = 0 };
@@ -285,7 +229,14 @@ void CommonDlg::OnSysCommand( UINT nID, LPARAM lParam )
 
 void CommonDlg::OnClickedAbout()
 {
-	AboutHandler( this->m_hWnd, m_RegData );
+	AboutHandler( this->m_hWnd,
+					m_RegData,
+					AfxGetResourceHandle(),
+					szConcatAppName,
+					_T("Thanks for using Concat/Split"),
+					szRegistryKey,
+					ProductCode::Concat,
+					IDS_CLOSE_FOR_REG );
 }
 
 void CommonDlg::OnCancel()

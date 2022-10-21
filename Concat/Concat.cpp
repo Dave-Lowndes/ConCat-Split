@@ -8,6 +8,7 @@
 #include <ShellAPI.h>
 #include <initguid.h>
 #include <shlobj.h>
+#include <filesystem>
 
 #include "resource.h"
 #include "RegEnc.h"
@@ -16,6 +17,10 @@
 #include "concat.h"
 #include "SplitDlg.h"
 #include "ConcatDlg.h"
+
+#include "MiscFunctions.h"
+
+using std::filesystem::path;
 
 //
 // Global variables
@@ -194,14 +199,10 @@ CShellExtension::CShellExtension () noexcept
 	InterlockedIncrement( &g_cRefThisDll );
 
 	/* Try to load the language resource DLL */
-	TCHAR szPath[_MAX_PATH];
-	DWORD Len = GetModuleFileName( AfxGetInstanceHandle(), szPath, _countof(szPath));
+	path ResDllPath{ GetModuleFilePath( AfxGetInstanceHandle() ) };
+	ResDllPath.replace_extension(_T("lang"));
 
-	/* Truncate the ConCat.dll part, and append the language DLL name instead */
-	Len -= sizeof("ConCat.dll") - 1;
-	lstrcpy( &szPath[ Len ], _T("ConCat.lang") );
-
-	HMODULE hMod = LoadLibrary( szPath );
+	HMODULE hMod = LoadLibrary( ResDllPath.c_str() );
 	if ( hMod != NULL )
 	{
 		AfxSetResourceHandle( hMod );

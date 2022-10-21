@@ -592,7 +592,7 @@ BOOL CSplitDlg::OnInitDialog()
 	CDialog::OnInitDialog();
 
 	{
-		bREGISTERED = IsRegisteredAndValid( m_RegData, ProductCode::Concat );
+		bREGISTERED = IsRegisteredNotExpiredAndValid( m_RegData, ProductCode::Concat );
 
 		/* Unregistered/unsaved default */
 		SETTINGS ss{ .Size = PresetItemSizes[0].Size };

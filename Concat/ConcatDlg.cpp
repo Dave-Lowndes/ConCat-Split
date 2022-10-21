@@ -82,7 +82,7 @@ BOOL CConcatDlg::OnInitDialog()
 	CommonDlg::OnInitDialog();
 
 	{
-		bREGISTERED = IsRegisteredAndValid( m_RegData, ProductCode::Concat );
+		bREGISTERED = IsRegisteredNotExpiredAndValid( m_RegData, ProductCode::Concat );
 
 		// sort them before adding to the list box to ensure they're in some order - hopefully the optimum one given the names the split operation will have used.
 //		if ( bREGISTERED )

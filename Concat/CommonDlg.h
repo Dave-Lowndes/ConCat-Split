@@ -82,5 +82,4 @@ extern HANDLE g_hTMBEvent;
 extern void TMBHandler( HWND hDlg, LPARAM lParam ) noexcept;
 
 extern constexpr size_t NumberOfCharactersToDisplayValue( size_t Value ) noexcept;
-extern void AboutHandler( HWND hDlg, const std::optional<CMyRegData>& RegData ) noexcept;
 extern int ThreadMessageBox( HWND hParent, LPCTSTR lpText, LPCTSTR lpCaption, UINT Type ) noexcept;
