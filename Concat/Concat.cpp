@@ -43,7 +43,7 @@ LONG volatile g_bCancel;
 //   HRESULT code signifying success or failure
 //
 _Check_return_
-STDAPI DllGetClassObject( _In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID *ppv )
+STDAPI DllGetClassObject( _In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID *ppv )	//-V835
 {
 	*ppv = NULL;
 
@@ -101,18 +101,18 @@ CClassFactory::~CClassFactory ()
 	InterlockedDecrement( &g_cRefThisDll );
 }
 
-STDMETHODIMP CClassFactory::QueryInterface (REFIID riid, LPVOID FAR *ppv) noexcept
+STDMETHODIMP CClassFactory::QueryInterface (REFIID riid, LPVOID FAR *ppv) noexcept	//-V835
 {
 	if (IsEqualIID (riid, IID_IUnknown))
 	{
-		*ppv = (LPUNKNOWN) (LPCLASSFACTORY) this;
+		*ppv = static_cast<LPUNKNOWN>( static_cast<LPCLASSFACTORY>( this ) );
 		m_cRef++;
 		return NOERROR;
 	}
 
 	else if (IsEqualIID (riid, IID_IClassFactory))
 	{
-		*ppv = (LPCLASSFACTORY) this;
+		*ppv = static_cast<LPCLASSFACTORY>( this );
 		m_cRef++;
 		return NOERROR;
 	}
@@ -151,7 +151,7 @@ STDMETHODIMP_(ULONG) CClassFactory::Release () noexcept
 //   HRESULT code signifying success or failure
 //
 
-STDMETHODIMP CClassFactory::CreateInstance( LPUNKNOWN pUnkOuter, REFIID riid, LPVOID FAR *ppvObj ) noexcept
+STDMETHODIMP CClassFactory::CreateInstance( LPUNKNOWN pUnkOuter, REFIID riid, LPVOID FAR *ppvObj ) noexcept	//-V::835,2009
 {
 	*ppvObj = NULL;
 
@@ -249,25 +249,25 @@ CShellExtension::~CShellExtension ()
 	m_hConcatBitmap = NULL;
 }
 
-STDMETHODIMP CShellExtension::QueryInterface (REFIID riid, LPVOID FAR *ppv) noexcept
+STDMETHODIMP CShellExtension::QueryInterface (REFIID riid, LPVOID FAR *ppv) noexcept	//-V835
 {
 	if (IsEqualIID (riid, IID_IUnknown))
 	{
-		*ppv = (LPUNKNOWN) (LPCONTEXTMENU) this;
+		*ppv = static_cast<LPUNKNOWN>( static_cast<LPCONTEXTMENU>( this ) );
 		m_cRef++;
 		return NOERROR;
 	}
 
 	else if (IsEqualIID (riid, IID_IContextMenu))
 	{
-		*ppv = (LPCONTEXTMENU) this;
+		*ppv = static_cast<LPCONTEXTMENU>( this );
 		m_cRef++;
 		return NOERROR;
 	}
 
 	else if (IsEqualIID (riid, IID_IShellExtInit))
 	{
-		*ppv = (LPSHELLEXTINIT) this;
+		*ppv = static_cast<LPSHELLEXTINIT>( this );
 		m_cRef++;
 		return NOERROR;
 	}
@@ -340,7 +340,7 @@ STDMETHODIMP CShellExtension::QueryContextMenu( HMENU hMenu, UINT indexMenu, UIN
 
 		CString sMenuText( MAKEINTRESOURCE( StringID ) );
 
-		::InsertMenu( hMenu, indexMenu, MF_STRING | MF_BYPOSITION, idCmdFirst + IDOFFSET_CONCAT, sMenuText );
+		::InsertMenu( hMenu, indexMenu, MF_STRING | MF_BYPOSITION, static_cast<UINT_PTR>(idCmdFirst) + IDOFFSET_CONCAT, sMenuText );
 
 		/* Some people take a purist view to menus having bitmaps, so it's now optional */
 		bool bDisplayBitmap = true;
@@ -370,7 +370,7 @@ STDMETHODIMP CShellExtension::QueryContextMenu( HMENU hMenu, UINT indexMenu, UIN
 
 		indexMenu++;
 
-		return ResultFromScode( MAKE_SCODE ( SEVERITY_SUCCESS, 0, USHORT ( IDOFFSET_CONCAT + 1 ) ) );
+		return ResultFromScode( MAKE_SCODE ( SEVERITY_SUCCESS, 0, IDOFFSET_CONCAT + 1 ) );	// -V126
 	}
 	else
 	{
@@ -577,22 +577,16 @@ STDMETHODIMP CShellExtension::InvokeCommand( LPCMINVOKECOMMANDINFO lpcmi ) noexc
 //   HRESULT code signifying success or failure
 //
 
-STDMETHODIMP CShellExtension::GetCommandString( UINT_PTR idCmd, UINT uFlags, UINT FAR * /* reserved */, LPSTR pszName, UINT cchMax ) noexcept
+STDMETHODIMP CShellExtension::GetCommandString( UINT_PTR idCmd, UINT uFlags, UINT FAR* /* reserved */, LPSTR pszName, UINT cchMax ) noexcept
 {
-	//
 	// Return an error code if idCmd contains an invalid offset.
-	//
 	if ( idCmd > IDOFFSET_CONCAT )
 	{
 		return ResultFromScode( E_INVALIDARG );
 	}
-
-	//
-	// Copy the requested string to the caller's buffer.
-	//
-	switch (idCmd)
+	else
 	{
-	case IDOFFSET_CONCAT:
+		// Copy the requested string to the caller's buffer.
 		switch ( uFlags )
 		{
 		case GCS_VERBA:
@@ -605,37 +599,26 @@ STDMETHODIMP CShellExtension::GetCommandString( UINT_PTR idCmd, UINT uFlags, UIN
 			MessageBeep( MB_OK );
 			break;
 
-		// Explorer never seems to request this now, but 3'rd party shells may do
+			// Explorer never seems to request this now, but 3'rd party shells may do
 		case GCS_HELPTEXTW:
 		case GCS_HELPTEXTA:
-			{
-				const UINT IdStr = m_SelItems.size() == 1 ? IDS_SPLIT_DESCRIPTION : IDS_CONCAT_DESCRIPTION;
+		{
+			const UINT IdStr = m_SelItems.size() == 1 ? IDS_SPLIT_DESCRIPTION : IDS_CONCAT_DESCRIPTION;
 
-				// Unicode or ANSI?
-				if ( uFlags == GCS_HELPTEXTW )
-				{
-					// Unicode
-					::LoadStringW( AfxGetResourceHandle(), IdStr, (LPWSTR) pszName, cchMax );
-				}
-				else
-				{
-					// ANSI
-					::LoadStringA( AfxGetResourceHandle(), IdStr, pszName, cchMax );
-				}
-			}
-			break;
+			// Unicode or ANSI?
+			std::ignore = uFlags == GCS_HELPTEXTW ?
+				// Unicode
+				::LoadStringW( AfxGetResourceHandle(), IdStr, reinterpret_cast<LPWSTR>( pszName ), cchMax ) :
+				// ANSI
+				::LoadStringA( AfxGetResourceHandle(), IdStr, pszName, cchMax );
+		}
+		break;
 
 		default:
 			// What is it then?
 			uFlags = uFlags;
 			break;
 		}
-		break;
-
-	default:
-		// Should be impossible
-		_ASSERT( false );
-		break;
 	}
 	return NOERROR;
 }
@@ -700,7 +683,7 @@ HRESULT CShellExtension::GetSelectedData() noexcept
 
 		if ( !FAILED( hr ) )
 		{
-			const UINT NumFiles = DragQueryFile( (HDROP) medium.hGlobal, 0xFFFFFFFF, NULL, 0 );
+			const UINT NumFiles = DragQueryFile( static_cast<HDROP>( medium.hGlobal ), UINT_MAX, NULL, 0 );
 
 			/* Delete any prior saved items storage */
 			m_SelItems.clear();
@@ -717,7 +700,7 @@ HRESULT CShellExtension::GetSelectedData() noexcept
 					TCHAR szFName[_MAX_PATH];
 
 					/* How long a string is it? */
-					const int NoChars = DragQueryFile( (HDROP) medium.hGlobal, fno, szFName, _MAX_PATH );
+					const int NoChars = DragQueryFile( static_cast<HDROP>( medium.hGlobal ), fno, szFName, _MAX_PATH );
 
 					if ( 0 != NoChars )
 					{
@@ -772,7 +755,7 @@ size_t CShellExtension::GetNumSelectedItems() noexcept
 
 	if ( hr == S_OK )
 	{
-		NumItems = DragQueryFile( (HDROP) medium.hGlobal, 0xFFFFFFFF, NULL, 0 );
+		NumItems = DragQueryFile( static_cast<HDROP>( medium.hGlobal ), UINT_MAX, NULL, 0 );
 
 		ReleaseStgMedium (&medium);
 	}

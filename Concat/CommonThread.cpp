@@ -69,7 +69,7 @@ void __stdcall CommonWriterThread( void )
 			/* Write the chunk out to the destn file */
 			DWORD dwBytesWritten;
 #ifdef _DEBUG
-			TRACE( "WriteFile %d\n", CurBuf );
+			TRACE( "WriteFile %d\n", CurBuf );	//-V111
 			LARGE_INTEGER startCount;
 			QueryPerformanceCounter( &startCount );
 #endif
@@ -79,7 +79,7 @@ void __stdcall CommonWriterThread( void )
 #ifdef _DEBUG
 				LARGE_INTEGER endCount;
 				QueryPerformanceCounter( &endCount );
-				TRACE( "WriteFile %d done in %d\n", CurBuf, endCount.QuadPart - startCount.QuadPart );
+				TRACE( "WriteFile %d done in %d\n", CurBuf, endCount.QuadPart - startCount.QuadPart );	//-V111
 #endif
 				/* All ok this chunk */
 				_ASSERTE( rtb.SizeOfData == dwBytesWritten );

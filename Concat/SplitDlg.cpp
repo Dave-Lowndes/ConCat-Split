@@ -51,14 +51,14 @@ DWORD CSplitDlg::CreateAndSizeDestinationFiles( vector<HandlePlusSize>& vFiles, 
 	vFiles.resize( m_NumFiles );
 	bool bOverwriteAll = false;
 
-	for ( UINT indx = 0;
+	for ( size_t indx = 0;
 		(indx < vFiles.size()) && (dwError == ERROR_SUCCESS) /*&& !g_bCancel Not now this is done before the work threads!*/;
 		++indx )
 	{
 		auto& CurFile = vFiles[indx];
 
 		/* Create the next file name */
-		CurFile.sFName = CreateNumericalName( m_sToFileName.c_str(), indx + 1, NumNumericChars);
+		CurFile.sFName = CreateNumericalName( m_sToFileName.c_str(), static_cast<UINT>(indx + 1), NumNumericChars);
 
 		CurFile.m_fh.Attach( CreateFile( CurFile.sFName.c_str(), GENERIC_WRITE | DELETE, 0, NULL,
 			CREATE_NEW,
@@ -101,7 +101,7 @@ DWORD CSplitDlg::CreateAndSizeDestinationFiles( vector<HandlePlusSize>& vFiles, 
 					else
 					{
 						/* User's said "No" - there's no point in carrying on now */
-						dwError = (DWORD) -1;	// Special value so we don't display another message box.
+						dwError = DWORD_MAX;	// Special value so we don't display another message box.
 
 						bOverwrite = false;
 					}
@@ -125,9 +125,10 @@ DWORD CSplitDlg::CreateAndSizeDestinationFiles( vector<HandlePlusSize>& vFiles, 
 			/* We can determine the sizes of the split files easily. All but the last
 			 * one are the split size, and the last one is the remainder.
 			 */
-			CurFile.m_SizeToCopy = indx < m_NumFiles - 1 ?
+			CurFile.m_SizeToCopy = indx < static_cast<size_t>(m_NumFiles) - 1 ?
 										m_SplitSize :
-										SrcFileSize - (m_NumFiles - 1) * m_SplitSize;
+														// Cast to ensure no overflow loss in sub-expression
+										SrcFileSize - (static_cast<UINT64>(m_NumFiles) - 1) * m_SplitSize;
 
 			/* Pre-size the file - to ensure we don't run out of space, and it may be faster overall */
 			if ( SetFilePointerEx( CurFile.m_fh, *(reinterpret_cast<LARGE_INTEGER*>(&(CurFile.m_SizeToCopy))), NULL, FILE_BEGIN ) )
@@ -135,7 +136,7 @@ DWORD CSplitDlg::CreateAndSizeDestinationFiles( vector<HandlePlusSize>& vFiles, 
 				if ( SetEndOfFile( CurFile.m_fh ) )
 				{
 					/* Back to the start */
-					if ( SetFilePointer( CurFile.m_fh, 0, NULL, FILE_BEGIN ) != INVALID_SET_FILE_POINTER )
+					if ( SetFilePointer( CurFile.m_fh, 0, NULL, FILE_BEGIN ) != INVALID_SET_FILE_POINTER )	//-V303
 					{
 						/* All should be OK */
 					}
@@ -325,13 +326,13 @@ void CSplitDlg::SplitEm( HWND hWnd, HWND hProgress, bool bCreateBatchFile, bool 
 				NULL,
 				dwError,
 				MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
-				(LPTSTR) &lpMsgBuf,
+				reinterpret_cast<LPTSTR>( &lpMsgBuf ),
 				0,
 				NULL );
 
 			CString sFmt( MAKEINTRESOURCE( IDS_FAIL_OPEN ) );
 			CString sMsg;
-			sMsg.Format( sFmt, m_sSrcFileName.c_str(), (LPCTSTR) lpMsgBuf );
+			sMsg.Format( sFmt, m_sSrcFileName.c_str(), static_cast<LPCTSTR>( lpMsgBuf ) );
 
 			MessageBox( sMsg, szSplitAppName, MB_OK | MB_ICONERROR );
 
@@ -377,7 +378,7 @@ static bool SaveSettings( SETTINGS Settings ) noexcept
 
 static const struct PresetSizes
 {
-	const TCHAR* Description;
+	const TCHAR* Description;	// -V122
 	unsigned __int64 Size;
 }  PresetItemSizes[] =
 {
@@ -464,7 +465,7 @@ static void PopulateSizeList( HWND hCB, eDrives eType )
 					szSize[2] = pDrive[2];	// '\'
 					szSize[3] = _T( ' ' );
 
-					StrFormatByteSizeW( FreeSpace.QuadPart, &szSize[4], _countof( szSize ) - 4 );
+					StrFormatByteSizeW( FreeSpace.QuadPart, &szSize[4], _countof( szSize ) - 4 );	//-V112
 					ComboBox_AddString( hCB, szSize );
 					g_vItemSizes.push_back( FreeSpace.QuadPart );
 				}
@@ -482,15 +483,15 @@ static void MatchSizeToCBEntry( HWND hDlg, UINT64 SizeValue ) noexcept
 {
 	/* Select the item in the combo box that corresponds to the saved setting */
 	const HWND hCB = GetDlgItem( hDlg, IDC_SIZE_CB );
-	int NumItems = ComboBox_GetCount( hCB );
+	size_t NumItems = ComboBox_GetCount( hCB );	//-V101
 	for ( ; NumItems > 0; NumItems-- )
 	{
-		const UINT64 Size = g_vItemSizes[NumItems - 1];
+		const auto Size = g_vItemSizes[NumItems - 1];
 
 		if ( Size == SizeValue )
 		{
 			/* A match - select this item */
-			ComboBox_SetCurSel( hCB, NumItems - 1 );
+			ComboBox_SetCurSel( hCB, NumItems - 1 );	//-V220
 			break;
 		}
 	}
@@ -572,11 +573,11 @@ wstring GetWin32ErrorString( DWORD dwError )
 		NULL,
 		dwError,
 		MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
-		(LPTSTR) &lpMsgBuf,
+		reinterpret_cast<LPTSTR>( &lpMsgBuf ),
 		0,
 		NULL );
 
-	wstring sErrMsg = (LPCTSTR) lpMsgBuf;
+	wstring sErrMsg{ static_cast<LPCTSTR>(lpMsgBuf) };
 
 	// Free the buffer.
 	LocalFree( lpMsgBuf );
@@ -761,7 +762,7 @@ BOOL CSplitDlg::OnInitDialog()
 
 						/* Format the value string */
 						CString sDispText;
-						sDispText.Format( sFmt, (LPCTSTR) szFmtValue );
+						sDispText.Format( sFmt, static_cast<LPCTSTR>( szFmtValue ) );
 
 						/* Update the dialog control */
 						SetDlgItemText( IDC_ORIG_SIZE, sDispText );
@@ -774,9 +775,9 @@ BOOL CSplitDlg::OnInitDialog()
 	/* Prevent entering anything except numbers in the combo's edit field */
 	{
 		HWND hComboEdit = GetDlgItem( IDC_SIZE_CB )->GetDlgItem( 0x03e9 )->m_hWnd;
-		DWORD EdStyle = GetWindowLong( hComboEdit, GWL_STYLE );
+		auto EdStyle = GetWindowLongPtr( hComboEdit, GWL_STYLE );
 		EdStyle |= ES_NUMBER;
-		SetWindowLong( hComboEdit, GWL_STYLE, EdStyle );
+		SetWindowLongPtr( hComboEdit, GWL_STYLE, EdStyle );
 
 		/* Limit the number of characters to a max uint64 length */
 		Edit_LimitText( hComboEdit, sizeof( "18446744073709551615" ) - 1 );
@@ -909,7 +910,7 @@ void CSplitDlg::OnSelchangeSizeCombo()
 {
 	/* A different item in the drop list has been chosen */
 	CComboBox* pcb = static_cast<CComboBox*>( GetDlgItem( IDC_SIZE_CB ) );
-	const UINT SelItem = pcb->GetCurSel();
+	const size_t SelItem = pcb->GetCurSel();
 	if ( SelItem != CB_ERR )
 	{
 		const UINT64 Size = g_vItemSizes[SelItem];
@@ -948,7 +949,7 @@ void CSplitDlg::OnEditchangeSizeCombo()
 LRESULT CSplitDlg::OnUpdateProgress( WPARAM wParam, LPARAM )
 {
 	/* wParam is the index into the files array */
-	const int indx = (int) wParam;
+	const UINT indx = static_cast<UINT>( wParam );
 
 	/* Construct the numerical file we're doing now */
 	const auto NumChars = NumberOfCharactersToDisplayValue( m_NumFiles );

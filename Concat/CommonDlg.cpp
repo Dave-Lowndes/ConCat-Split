@@ -52,7 +52,7 @@ static BOOL CALLBACK EnumChildProcToDisableSomeControls( HWND hWnd, LPARAM lPara
 
 			const bool bDisableThisCtrl = bIsButtonCtrl ?
 				// Don't disable any group boxes (buttons) - it causes a visual quirk with the overlaid check box
-				(GetWindowLong( hWnd, GWL_STYLE ) & BS_GROUPBOX) != BS_GROUPBOX :
+				(GetWindowLongPtr( hWnd, GWL_STYLE ) & BS_GROUPBOX) != BS_GROUPBOX :
 				// Don't disable static (label) controls
 				!((NumChars == sizeof( "STATIC" ) - 1) && (_wcsicmp( szClass, _T( "STATIC" ) ) == 0));
 
@@ -77,7 +77,7 @@ void CommonDlg::UIDisable() noexcept
 	this->GotoDlgCtrl( GetDlgItem( IDCANCEL ) );
 
 	/* Disable the currently enabled child windows to prevent interaction */
-	EnumChildWindows( this->m_hWnd, EnumChildProcToDisableSomeControls, (LPARAM) &this->vhDisabledCtrls );
+	EnumChildWindows( this->m_hWnd, EnumChildProcToDisableSomeControls, reinterpret_cast<LPARAM>( &this->vhDisabledCtrls ) );
 
 	/* Change the caption of the Close button to Cancel - it now functions to cancel the operation */
 	{
@@ -185,13 +185,13 @@ LRESULT CommonDlg::OnUpdateProgress( int FileNum, LPCTSTR szPath )
 
 				/* Create a memory DC with the same attributes as the control */
 				HDC hMemDC = CreateCompatibleDC( hDC );
-				HFONT hOldFont = (HFONT) SelectObject( hMemDC, hFont );
+				HFONT hOldFont = static_cast<HFONT>( SelectObject( hMemDC, hFont ) );
 
 				/* Exclude characters from the start of the string until it'll fit the control's width */
-				for ( auto Len = wcslen( pPath ); pPath < &szPath[_MAX_PATH]; pPath++, Len-- )
+				for ( int Len = static_cast<int>( wcslen( pPath ) ); pPath < &szPath[_MAX_PATH]; pPath++, Len-- )
 				{
 					SIZE size;
-					GetTextExtentPoint32( hMemDC, pPath, (int) Len, &size );
+					GetTextExtentPoint32( hMemDC, pPath, Len, &size );
 					const auto Excess = size.cx - CtrlWidth;
 					if ( Excess <= 0 )
 					{

@@ -167,11 +167,11 @@ BOOL CConcatDlg::OnInitDialog()
 		/* Assign the bitmaps for the up/down buttons */
 		auto hInstance = AfxGetInstanceHandle();
 
-		HICON hU = (HICON) LoadImage( hInstance, MAKEINTRESOURCE( IDI_UP ), IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR );
-		HICON hD = (HICON) LoadImage( hInstance, MAKEINTRESOURCE( IDI_DOWN ), IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR );
+		HICON hU = static_cast<HICON>( LoadImage( hInstance, MAKEINTRESOURCE( IDI_UP ), IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR ) );
+		HICON hD = static_cast<HICON>( LoadImage( hInstance, MAKEINTRESOURCE( IDI_DOWN ), IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR ) );
 
-		::SendMessage( hUp, BM_SETIMAGE, IMAGE_ICON, (LPARAM) /*(DWORD)*/ hU );
-		::SendMessage( hDown, BM_SETIMAGE, IMAGE_ICON, (LPARAM) /*(DWORD)*/ hD );
+		::SendMessage( hUp, BM_SETIMAGE, IMAGE_ICON, reinterpret_cast<LPARAM>( hU ) );
+		::SendMessage( hDown, BM_SETIMAGE, IMAGE_ICON, reinterpret_cast<LPARAM>( hD ) );
 
 		/* Initially the up & down buttons are disabled */
 		::EnableWindow( hUp, FALSE );
@@ -219,7 +219,7 @@ LRESULT CConcatDlg::OnWorkerFinished( WPARAM, LPARAM )
 LRESULT CConcatDlg::OnUpdateProgress( WPARAM wParam, LPARAM )
 {
 	/* wParam is the index into the files array */
-	const int indx = (int) wParam;
+	const int indx = static_cast<int>( wParam );
 
 	CommonDlg::OnUpdateProgress( indx, m_Files.at( indx ).c_str() );
 	return 0;
@@ -259,17 +259,25 @@ void CConcatDlg::OnMeasureItem( int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStr
 }
 #endif // 0
 
-static int GetTextOverrun( HDC hDC, HFONT hFont, RECT* rect, LPCTSTR pName ) noexcept
+// For 64-bit systems, it's more efficient to pass some things by value. This helps hide the difference a little.
+#ifdef _WIN64
+#define Ref_4_32
+#else
+#define Ref_4_32 &
+#endif
+
+
+static auto GetTextOverrun( HDC hDC, HFONT hFont, const RECT Ref_4_32 rect, LPCTSTR pName ) noexcept
 {
 	/* Create a memory DC with the same attributes as the control */
 	HDC hMemDC{ CreateCompatibleDC( hDC ) };
-	HFONT hOldFont{ (HFONT) SelectObject( hMemDC, hFont ) };
+	HFONT hOldFont{ static_cast<HFONT>( SelectObject( hMemDC, hFont ) ) };
 
 	SIZE size;
 
-	GetTextExtentPoint32( hMemDC, pName, lstrlen( pName ), &size );
+	GetTextExtentPoint32( hMemDC, pName, static_cast<int>( wcslen( pName ) ), &size );
 
-	int diff = size.cx - (rect->right - rect->left);
+	auto diff = size.cx - (rect.right - rect.left);
 	if ( diff < 0 )
 	{
 		diff = 0;
@@ -329,14 +337,14 @@ void CConcatDlg::OnDrawItem( int nIDCtl, LPDRAWITEMSTRUCT lpdis )
 			//				const int x = LOWORD(GetDialogBaseUnits());
 			//				InflateRect( &txtrc, -x, 0 );
 
-			const int Excess = GetTextOverrun( lpdis->hDC, GetWindowFont( GetDlgItem( IDC_COPY_LIST )->m_hWnd ), &txtrc, szBuffer );
+			const auto Excess = GetTextOverrun( lpdis->hDC, GetWindowFont( GetDlgItem( IDC_COPY_LIST )->m_hWnd ), txtrc, szBuffer );
 
 			TEXTMETRIC tm;
 			GetTextMetrics( lpdis->hDC, &tm );
 
 			const int y = (lpdis->rcItem.bottom + lpdis->rcItem.top - tm.tmHeight) / 2;
 
-			ExtTextOut( lpdis->hDC, lpdis->rcItem.left - Excess, y, ETO_CLIPPED | ETO_OPAQUE, &lpdis->rcItem, szBuffer, (UINT) wcslen( szBuffer ), NULL );
+			ExtTextOut( lpdis->hDC, lpdis->rcItem.left - Excess, y, ETO_CLIPPED | ETO_OPAQUE, &lpdis->rcItem, szBuffer, static_cast<UINT>( wcslen( szBuffer ) ), NULL );
 
 			/* Deselect inverse colours */
 			if ( bColourChanged )
@@ -377,7 +385,7 @@ void CConcatDlg::OnSelchangeCopyList()
 
 			/* Enable/Disable the up/down buttons accordingly */
 			const BOOL bUpEnabled = indx != 0;
-			const BOOL bDownEnabled = indx != (int) (m_Files.size() - 1);
+			const BOOL bDownEnabled = indx != static_cast<int>( (m_Files.size() - 1) );
 
 			{
 				/* If we're disabling a control that currently has the focus, we must move the focus */
@@ -418,7 +426,7 @@ void CConcatDlg::OnUpDown( UINT nID )
 		const int Offset = nID == IDC_UP ? 1 : -1;
 
 		{
-			const size_t pos = CurItem - Offset;
+			const auto pos = CurItem - Offset;
 
 			// Shorthand references to file names [pos] & [CurItem]
 			auto& FileNameAtPos = m_Files.at( pos );
@@ -439,7 +447,7 @@ void CConcatDlg::OnUpDown( UINT nID )
 	}
 
 	/* Simulate the notification to do the logic of the up/down buttons */
-	PostMessage( WM_COMMAND, MAKEWPARAM( IDC_COPY_LIST, LBN_SELCHANGE ), (LPARAM) hList );
+	PostMessage( WM_COMMAND, MAKEWPARAM( IDC_COPY_LIST, LBN_SELCHANGE ), reinterpret_cast<LPARAM>( hList ) );
 }
 
 
@@ -487,7 +495,7 @@ void CConcatDlg::OnOK()
 					NULL,
 					dwError,
 					MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
-					(LPTSTR) &lpMsgBuf,
+					reinterpret_cast<LPTSTR>( &lpMsgBuf ),
 					0,
 					NULL );
 

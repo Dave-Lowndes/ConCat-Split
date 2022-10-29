@@ -17,8 +17,8 @@ public:
 	{
 	}
 
-	HWND hProgress;	// Handle to the progress control
-	HWND hParentWnd;	// Dialog (parent) window handle
+	HWND hProgress;	// -V122 Handle to the progress control
+	HWND hParentWnd;	// -V122 Dialog (parent) window handle
 };
 
 class CTransferBuffer
@@ -45,7 +45,7 @@ public:
 	{
 		return static_cast<DWORD>(vBuffer.size());
 	}
-	HANDLE fh = INVALID_HANDLE_VALUE;	// The file handle
+	HANDLE fh = INVALID_HANDLE_VALUE;	// -V122 The file handle
 	DWORD SizeOfData = 0;	// The size of the data in the buffer. Because of Win32 API limitations, the buffer size is always < 32-bits (4GB)
 	DWORD WriteErrorValue = ERROR_SUCCESS;	// GetLastError value if write fails
 private:
@@ -93,8 +93,8 @@ extern CTransferBuffer g_TransBuffers[2];
 class CThreadMessageBoxParams
 {
 public:
-	LPCTSTR pText;
-	LPCTSTR pCaption;
+	LPCTSTR pText;		// -V122
+	LPCTSTR pCaption;	// -V122
 	UINT Type;
 	int RetVal;
 };

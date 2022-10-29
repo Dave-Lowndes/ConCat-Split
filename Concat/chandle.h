@@ -4,7 +4,7 @@ template<HANDLE t_hNullValue>
 class CHandleT
 {
 public:
-	HANDLE m_hHandle;
+	HANDLE m_hHandle;	//-V122
 
 public:
 	CHandleT() noexcept : m_hHandle(t_hNullValue)

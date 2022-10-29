@@ -38,7 +38,7 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 
 		size_t indx = 0;
 		for ( vector<HandlePlusSize>::const_iterator it = std.vSplitFiles.begin();
-			(it != std.vSplitFiles.end()) && !g_bCancel && (dwError == ERROR_SUCCESS);
+			(it != std.vSplitFiles.end()) && !InterlockedExchangeAdd( &g_bCancel, 0 ) && (dwError == ERROR_SUCCESS);
 			++it, ++indx )
 		{
 			_ASSERTE( it->m_fh.IsValid() );
@@ -48,7 +48,7 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 			{
 				ULARGE_INTEGER SizeRemaining{ .QuadPart = it->m_SizeToCopy };
 
-				while ( (SizeRemaining.QuadPart > 0) && (dwError == ERROR_SUCCESS) && !g_bCancel )
+				while ( (SizeRemaining.QuadPart > 0) && (dwError == ERROR_SUCCESS) && !InterlockedExchangeAdd( &g_bCancel, 0 ) )
 				{
 					/* Update the progress control */
 					{
@@ -59,7 +59,7 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 						{
 							// The progress bar's position lags what it's set to since MS changed it!
 							// Trick to work around it: https://stackoverflow.com/questions/22469876/progressbar-lag-when-setting-position-with-pbm-setpos
-							PostMessage( std.hProgress, PBM_SETPOS, ProgPos+1, 0 );
+							PostMessage( std.hProgress, PBM_SETPOS, static_cast<WPARAM>(ProgPos)+1, 0 );
 							PostMessage( std.hProgress, PBM_SETPOS, ProgPos, 0 );
 							PrevProgPos = ProgPos;
 
@@ -90,7 +90,7 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 							ThisBlockSize = SizeRemaining.LowPart;
 						}
 #ifdef _DEBUG
-						TRACE( "ReadFile %d\n", CurrentBuffer );
+						TRACE( "ReadFile %d\n", CurrentBuffer );	//-V111
 						LARGE_INTEGER startCount;
 						QueryPerformanceCounter( &startCount );
 #endif
@@ -101,7 +101,7 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 #ifdef _DEBUG
 							LARGE_INTEGER endCount;
 							QueryPerformanceCounter( &endCount );
-							TRACE( "ReadFile %d done in %d\n", CurrentBuffer, endCount.QuadPart - startCount.QuadPart );
+							TRACE( "ReadFile %d done in %d\n", CurrentBuffer, endCount.QuadPart - startCount.QuadPart );	//-V111
 #endif
 
 							/* Save the file handle & data length with the buffer */
@@ -170,7 +170,7 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 		/* Wait for the thread to finish */
 		WriterThread.join();
 
-		if ( !g_bCancel && (dwError == ERROR_SUCCESS) )
+		if ( !InterlockedExchangeAdd( &g_bCancel, 0 ) && (dwError == ERROR_SUCCESS) )
 		{
 			/* Write the target file name to the batch file */
 #ifdef ANSIBATCHOUTPUT
@@ -217,13 +217,13 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 					NULL,
 					dwError,
 					MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
-					(LPTSTR) &lpMsgBuf,
+					reinterpret_cast<LPTSTR>( &lpMsgBuf ),
 					0,
 					NULL );
 
 				CString sFmt(MAKEINTRESOURCE( IDS_SPLIT_FAILED ));
 				CString sMsg;
-				sMsg.Format( sFmt, (LPCTSTR) lpMsgBuf );
+				sMsg.Format( sFmt, static_cast<LPCTSTR>( lpMsgBuf ) );
 
 				ThreadMessageBox( std.hParentWnd, sMsg, szSplitAppName, MB_OK | MB_ICONERROR );
 

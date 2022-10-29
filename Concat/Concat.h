@@ -79,8 +79,8 @@ public:
     STDMETHODIMP Initialize (LPCITEMIDLIST pidlFolder, LPDATAOBJECT lpdobj, HKEY hKeyProgID) noexcept override;
 
 private:
-	HBITMAP m_hSplitBitmap;
-	HBITMAP m_hConcatBitmap;
+	HBITMAP m_hSplitBitmap;     // -V122
+	HBITMAP m_hConcatBitmap;    // -V122
 	void ConCatenateFiles( HWND hWnd ) noexcept;
 	void SplitFiles( HWND hWnd ) noexcept;
 

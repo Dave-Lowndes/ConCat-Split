@@ -71,7 +71,7 @@ static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t& Curr
 			int PrevProgPos = 0;
 
 			/* Do the copy a block at a time */
-			while ( (Remaining.QuadPart > 0) && (dwError == ERROR_SUCCESS) && !g_bCancel )
+			while ( (Remaining.QuadPart > 0) && (dwError == ERROR_SUCCESS) && !InterlockedExchangeAdd( &g_bCancel, 0 ) )
 			{
 				{
 					// Fiddle +1 to ensure it gets to 100%
@@ -81,7 +81,7 @@ static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t& Curr
 					{
 						// The progress bar's position lags what it's set to since MS changed it!
 						// Trick to work around it: https://stackoverflow.com/questions/22469876/progressbar-lag-when-setting-position-with-pbm-setpos
-						PostMessage( hProgress, PBM_SETPOS, ProgPos+1, 0 );
+						PostMessage( hProgress, PBM_SETPOS, static_cast<WPARAM>(ProgPos)+1, 0 );
 						PostMessage( hProgress, PBM_SETPOS, ProgPos, 0 );
 
 						PrevProgPos = ProgPos;
@@ -105,7 +105,7 @@ static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t& Curr
 													Remaining.LowPart;
 
 #ifdef _DEBUG
-					TRACE( "ReadFile %d\n", CurrentBuffer );
+					TRACE( "ReadFile %d\n", CurrentBuffer );	//-V111
 					LARGE_INTEGER startCount;
 					QueryPerformanceCounter( &startCount );
 #endif
@@ -117,7 +117,7 @@ static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t& Curr
 #ifdef _DEBUG
 						LARGE_INTEGER endCount;
 						QueryPerformanceCounter( &endCount );
-						TRACE( "ReadFile %d done in %d\n", CurrentBuffer, endCount.QuadPart - startCount.QuadPart );
+						TRACE( "ReadFile %d done in %d\n", CurrentBuffer, endCount.QuadPart - startCount.QuadPart );	//-V111
 #endif
 
 						/* Save the file handle & data length with the buffer */
@@ -183,7 +183,7 @@ void __stdcall ConcatControlThread_Reader( unique_ptr<ConcatThreadData> uctd )
 				if ( SetEndOfFile( hTempFile ) )
 				{
 					/* Back to the start */
-					SetFilePointer( hTempFile, 0, NULL, FILE_BEGIN );
+					SetFilePointer( hTempFile, 0, NULL, FILE_BEGIN );	//-V303
 
 					/* We should be OK to write the file */
 					try
@@ -201,7 +201,7 @@ void __stdcall ConcatControlThread_Reader( unique_ptr<ConcatThreadData> uctd )
 						UINT indx;
 
 						for ( indx = 0, itName = cbegin( ctd.Files );
-							(itName != cend( ctd.Files )) && (dwError == ERROR_SUCCESS) && !g_bCancel;
+							(itName != cend( ctd.Files )) && (dwError == ERROR_SUCCESS) && !InterlockedExchangeAdd( &g_bCancel, 0 );
 							++indx, ++itName )
 						{
 							/* Update the progress control with the item number and filename of the current item */
@@ -221,13 +221,13 @@ void __stdcall ConcatControlThread_Reader( unique_ptr<ConcatThreadData> uctd )
 									NULL,
 									dwError,
 									MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
-									(LPTSTR) &lpMsgBuf,
+									reinterpret_cast<LPTSTR>( &lpMsgBuf ),
 									0,
 									NULL );
 
 								CString sFmt(MAKEINTRESOURCE( IDS_FAIL_JOIN ));
 								CString sMsg;
-								sMsg.Format( sFmt/*_T("Failed while joining file '%s'\n\n%s")*/, (LPCTSTR) itName->c_str(), (LPCTSTR) lpMsgBuf );
+								sMsg.Format( sFmt/*_T("Failed while joining file '%s'\n\n%s")*/, static_cast<LPCTSTR>( itName->c_str() ), static_cast<LPCTSTR>( lpMsgBuf ) );
 
 								ThreadMessageBox( ctd.hParentWnd, sMsg, szConcatAppName, MB_OK | MB_ICONERROR );
 
@@ -266,7 +266,7 @@ void __stdcall ConcatControlThread_Reader( unique_ptr<ConcatThreadData> uctd )
 	}
 
 	/* If we've succeeded and not canceled */
-	if ( (dwError == ERROR_SUCCESS) && !g_bCancel )
+	if ( (dwError == ERROR_SUCCESS) && !InterlockedExchangeAdd( &g_bCancel, 0 ) )
 	{
 		/* If we're copying onto the first file we selected, first of all delete the original */
 		if ( FileExistsAndWritable( ctd.sToName.c_str() ) )
@@ -305,12 +305,12 @@ void __stdcall ConcatControlThread_Reader( unique_ptr<ConcatThreadData> uctd )
 				NULL,
 				dwError,
 				MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
-				(LPTSTR) &lpMsgBuf,
+				reinterpret_cast<LPTSTR>( &lpMsgBuf ),
 				0,
 				NULL );
 
 			CString sMsg;
-			sMsg.Format( _T( "Failed to join temporary file '%s'.\n\n%s" ), szTempName, (LPCTSTR) lpMsgBuf );
+			sMsg.Format( _T( "Failed to join temporary file '%s'.\n\n%s" ), szTempName, static_cast<LPCTSTR>( lpMsgBuf ) );
 
 			ThreadMessageBox( ctd.hParentWnd, sMsg, szConcatAppName, MB_OK | MB_ICONERROR );
 

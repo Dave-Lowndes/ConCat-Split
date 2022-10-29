@@ -80,7 +80,7 @@ public:
 
 	/* Split members used to pass values to the worker thread */
 
-	const size_t NumNumericChars;	// The number of characters that are needed to create numeric file names of a fixed width
+	const size_t NumNumericChars;	// -V122 The number of characters that are needed to create numeric file names of a fixed width
 	UINT64 SrcRemaining;
 	const UINT64 SrcFileSize;
 	const CFileHandle hSrcFile;
