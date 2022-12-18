@@ -123,6 +123,9 @@
     <ClInclude Include="ConcatDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\CommonAboutBoxV3Reg\AboutDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="bitmap1.bmp">

@@ -235,6 +235,7 @@ void CommonDlg::OnClickedAbout()
 					szConcatAppName,
 					_T("Thanks for using Concat/Split"),
 					szRegistryKey,
+					AfxGetInstanceHandle(),
 					ProductCode::Concat,
 					IDS_CLOSE_FOR_REG );
 }

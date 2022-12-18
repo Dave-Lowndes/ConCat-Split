@@ -302,6 +302,7 @@
     <ResourceCompile Include="concat.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\CommonAboutBoxV3Reg\AboutDlg.h" />
     <ClInclude Include="chandle.h" />
     <ClInclude Include="CommonDlg.h" />
     <ClInclude Include="CommonThread.h" />
