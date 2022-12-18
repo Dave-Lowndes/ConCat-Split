@@ -634,7 +634,7 @@ STDMETHODIMP CShellExtension::GetCommandString( UINT_PTR idCmd, UINT uFlags, UIN
 // Returns:
 //   HRESULT code signifying success or failure
 //
-static const FORMATETC g_fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+static constexpr FORMATETC g_fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 
 STDMETHODIMP CShellExtension::Initialize( LPCITEMIDLIST /* pidlFolder */, LPDATAOBJECT lpdobj, HKEY /* hKeyProgID */ ) noexcept
 {
@@ -674,7 +674,6 @@ HRESULT CShellExtension::GetSelectedData() noexcept
 	HRESULT hr;
 
 	{
-//		static const FORMATETC fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 		STGMEDIUM medium;
 
 		// Render the data referenced by the IDataObject pointer to an HGLOBAL
@@ -743,7 +742,6 @@ HRESULT CShellExtension::GetSelectedData() noexcept
 
 size_t CShellExtension::GetNumSelectedItems() noexcept
 {
-//	static const FORMATETC fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 	STGMEDIUM medium;
 
 	// Render the data referenced by the IDataObject pointer to an HGLOBAL

@@ -376,7 +376,7 @@ static bool SaveSettings( SETTINGS Settings ) noexcept
 	return Result == ERROR_SUCCESS;
 }
 
-static const struct PresetSizes
+static constexpr struct PresetSizes
 {
 	const TCHAR* Description;	// -V122
 	unsigned __int64 Size;
@@ -865,7 +865,7 @@ void CSplitDlg::OnClickedChangeDestn()
 	}
 }
 
-static const int CtrlsToEnableWhileOperating[]{ IDC_SPLITTING, IDC_FNUM, IDC_CURRFILE };
+static constexpr int CtrlsToEnableWhileOperating[]{ IDC_SPLITTING, IDC_FNUM, IDC_CURRFILE };
 
 void CSplitDlg::OnOK()
 {

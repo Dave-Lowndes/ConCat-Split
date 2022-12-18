@@ -208,7 +208,7 @@ BOOL CConcatDlg::OnInitDialog()
 	// EXCEPTION: OCX Property Pages should return FALSE
 }
 
-static const int CtrlsToEnableWhileOperating[]{ IDC_CONCATING, IDC_CURRFILE, IDC_FNUM };
+static constexpr int CtrlsToEnableWhileOperating[]{ IDC_CONCATING, IDC_CURRFILE, IDC_FNUM };
 
 LRESULT CConcatDlg::OnWorkerFinished( WPARAM, LPARAM )
 {

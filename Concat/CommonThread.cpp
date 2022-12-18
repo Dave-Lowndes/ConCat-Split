@@ -29,7 +29,7 @@ static DWORD GetSysGran() noexcept
 	return si.dwAllocationGranularity;
 }
 
-/*const */DWORD Granularity = GetSysGran();
+const DWORD Granularity = GetSysGran();
 #endif
 
 /* Allocate 2 buffers of the maximal block size - so that we only do heap
