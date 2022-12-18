@@ -187,7 +187,7 @@ void CSplitDlg::SplitEm( HWND hWnd, HWND hProgress, bool bCreateBatchFile, bool 
 			FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL ) );
 		if ( !hBatchFile.IsValid() )
 #else
-		// Create the file for utf-8 ouput (w = write, x = fail if exists, t = text mode)
+		// Create the file for utf-8 output (w = write, x = fail if exists, t = text mode)
 		_wfopen_s( &fBatch, osf.sBatchName.c_str(), L"wxt, ccs=UTF-8" );
 		if ( fBatch == nullptr )
 #endif

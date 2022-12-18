@@ -17,6 +17,43 @@ using std::vector;
 namespace fs = std::filesystem;
 using std::unique_ptr;
 
+// Dabble with C++ concepts
+// To be usable in the GetQuotedFileNameFromFullPathName function, the
+// parameter type needs to be convertible to a std::filesystem::path.
+template<typename T>
+concept IsAPathType = requires(T PathParam)
+{
+	{PathParam} -> std::convertible_to<fs::path>;
+};
+
+// And the function itself requires the above named concept
+template< typename T>
+	requires IsAPathType<T>
+static auto GetQuotedFileNameFromPathName( T FullPathName )
+{
+	// As far as I've been able to ascertain, this construction handles any type
+	// of path name I've thrown at it - full, relative, filename only, extension
+	// only, network paths, and extended paths.
+	const fs::path pat( FullPathName );
+
+	// This debug test only seems to be able to detect no filename or extension
+	// i.e. the presence of just the filename, or just the ext is regarded as
+	// valid. It does detect just a path (ending in '\').
+	_ASSERT( pat.has_filename() );
+
+	// Put the filename between quotes
+	return std::format( LR"("{}")", pat.filename().c_str() );
+}
+
+//static auto GetQuotedFileNameFromFullPathName( const wstring & FullPathName )
+//{
+//	const fs::path pat( FullPathName );
+//
+//	/* Quote the name to cater for long file names with spaces */
+//	// Note, prefix the format string with L to get Unicode.
+//	return std::format( LR"("{}")", /*sFileName*/pat.filename().c_str() );
+//}
+
 unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 {
 	size_t CurrentBuffer = 0;
@@ -37,8 +74,8 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 		int PrevProgPos = 0;
 
 		size_t indx = 0;
-		for ( vector<HandlePlusSize>::const_iterator it = std.vSplitFiles.begin();
-			(it != std.vSplitFiles.end()) && !InterlockedExchangeAdd( &g_bCancel, 0 ) && (dwError == ERROR_SUCCESS);
+		for ( auto it = cbegin( std.vSplitFiles );
+			(it != cend( std.vSplitFiles )) && !InterlockedExchangeAdd( &g_bCancel, 0 ) && (dwError == ERROR_SUCCESS);
 			++it, ++indx )
 		{
 			_ASSERTE( it->m_fh.IsValid() );
@@ -132,25 +169,21 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 				if ( ptd.fBatch != nullptr )
 #endif
 				{
-					/* For the batch file, we only want the filename (no path) */
-					const fs::path pat( it->sFName );
-					const wstring sFileName = pat.filename();
-					CT2CA pA( sFileName.c_str() );
-
-					/* Quote the name to cater for long file names with spaces */
-					// Note, prefix the format string to L to get Unicode!
-					auto quotedName = std::format( R"("{}")", pA );
+					// For the batch file, we only want the filename (no path).
+					// Invoke specifically as a const reference to prevent copying
+					auto quotedName{ GetQuotedFileNameFromPathName<const wstring &>( it->sFName ) };
 
 					// If there are more to do, add a '+', otherwise a space
 					// (the results and knowledge of the copy command syntax
 					// will make this clear)
-					quotedName += it != std.vSplitFiles.end() - 1 ? '+' : ' ';
+					quotedName += it != cend(std.vSplitFiles) - 1 ? L'+' : L' ';
 
+					CT2CA quotedAnsiName( quotedName.c_str() );
 #ifdef ANSIBATCHOUTPUT
 					DWORD dwBytesWritten;
-					WriteFile( std.hBatchFile, quotedName.c_str(), static_cast<DWORD>(quotedName.size() * sizeof( quotedName[0] )), &dwBytesWritten, NULL );
+					WriteFile( std.hBatchFile, quotedAnsiName, static_cast<DWORD>(quotedName.size() * sizeof( quotedAnsiName[0] )), &dwBytesWritten, NULL );
 #else
-					_fputts( quotedName.c_str(), ptd.fBatch );
+					_fputts( quotedAnsiName, ptd.fBatch );
 #endif
 				}
 			}
@@ -179,20 +212,16 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 			if ( ptd.fBatch != nullptr )
 #endif
 			{
-				/* For the batch file usage, we only want the filename (no path) */
-				const fs::path pat( std.sSrcFileName );
-				const wstring sFileName = pat.filename();
-				CT2CA pA( sFileName.c_str() );
-
-				/* Quote the name to cater for long file names with spaces */
-				// Note, prefix the format string with L to get Unicode.
-				const auto quotedName = std::format( R"("{}")", pA );
+				// For the batch file usage, we only want the filename (no path)
+				// Invoke specifically as a const reference to prevent copying
+				const auto quotedName{ GetQuotedFileNameFromPathName<const wstring&>( std.sSrcFileName )};
+				CT2CA quotedAnsiName( quotedName.c_str() );
 
 #ifdef ANSIBATCHOUTPUT
 				DWORD dwBytesWritten;
-				WriteFile( std.hBatchFile, quotedName.c_str(), static_cast<DWORD>(quotedName.size() * sizeof( quotedName[0] )), &dwBytesWritten, NULL );
+				WriteFile( std.hBatchFile, quotedAnsiName, static_cast<DWORD>(quotedName.size() * sizeof( quotedAnsiName[0] )), &dwBytesWritten, NULL );
 #else
-				_fputts( quotedName.c_str(), ptd.fBatch );
+				_fputts( quotedAnsiName, ptd.fBatch );
 #endif
 			}
 
