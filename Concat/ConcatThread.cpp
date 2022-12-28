@@ -71,7 +71,7 @@ static DWORD ConcatenateFile( HANDLE hDestnFile, LPCTSTR pFileName, size_t& Curr
 			int PrevProgPos = 0;
 
 			/* Do the copy a block at a time */
-			while ( (Remaining.QuadPart > 0) && (dwError == ERROR_SUCCESS) && !InterlockedExchangeAdd( &g_bCancel, 0 ) )
+			while ( (Remaining.QuadPart > 0) && (dwError == ERROR_SUCCESS) && !g_bCancel )
 			{
 				{
 					// Fiddle +1 to ensure it gets to 100%
@@ -201,7 +201,7 @@ void __stdcall ConcatControlThread_Reader( unique_ptr<ConcatThreadData> uctd )
 						UINT indx;
 
 						for ( indx = 0, itName = cbegin( ctd.Files );
-							(itName != cend( ctd.Files )) && (dwError == ERROR_SUCCESS) && !InterlockedExchangeAdd( &g_bCancel, 0 );
+							(itName != cend( ctd.Files )) && (dwError == ERROR_SUCCESS) && !g_bCancel;
 							++indx, ++itName )
 						{
 							/* Update the progress control with the item number and filename of the current item */
@@ -266,7 +266,7 @@ void __stdcall ConcatControlThread_Reader( unique_ptr<ConcatThreadData> uctd )
 	}
 
 	/* If we've succeeded and not canceled */
-	if ( (dwError == ERROR_SUCCESS) && !InterlockedExchangeAdd( &g_bCancel, 0 ) )
+	if ( (dwError == ERROR_SUCCESS) && !g_bCancel )
 	{
 		/* If we're copying onto the first file we selected, first of all delete the original */
 		if ( FileExistsAndWritable( ctd.sToName.c_str() ) )
@@ -319,7 +319,7 @@ void __stdcall ConcatControlThread_Reader( unique_ptr<ConcatThreadData> uctd )
 		}
 
 		/* Set the cancel flag so that we don't close the dialog */
-		InterlockedExchange( &g_bCancel, TRUE );
+		g_bCancel = true;
 	}
 
 	/* Tell the main UI thread that we've done (and to reset the UI) */

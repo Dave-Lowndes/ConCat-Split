@@ -246,7 +246,7 @@ void CommonDlg::OnCancel()
 	/* If the default OK button is disabled, we must be doing the operation */
 	if ( !GetDlgItem( IDOK )->IsWindowEnabled() )
 	{
-		InterlockedExchange( &g_bCancel, TRUE );
+		g_bCancel = true;
 	}
 	else
 	{

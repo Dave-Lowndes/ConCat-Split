@@ -27,10 +27,8 @@ using std::filesystem::path;
 //
 static LONG	volatile g_cRefThisDll = 0;          // Reference count for this DLL
 
-// Should be 32-bit aligned.
-__declspec(align(4))
 // Signals cancellation of the concat/split operation.
-LONG volatile g_bCancel;
+std::atomic_bool g_bCancel;
 
 // DllGetClassObject is called by the shell to create a class factory object.
 //

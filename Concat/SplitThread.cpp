@@ -75,7 +75,7 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 
 		size_t indx = 0;
 		for ( auto it = cbegin( std.vSplitFiles );
-			(it != cend( std.vSplitFiles )) && !InterlockedExchangeAdd( &g_bCancel, 0 ) && (dwError == ERROR_SUCCESS);
+			(it != cend( std.vSplitFiles )) && !g_bCancel && (dwError == ERROR_SUCCESS);
 			++it, ++indx )
 		{
 			_ASSERTE( it->m_fh.IsValid() );
@@ -85,7 +85,7 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 			{
 				ULARGE_INTEGER SizeRemaining{ .QuadPart = it->m_SizeToCopy };
 
-				while ( (SizeRemaining.QuadPart > 0) && (dwError == ERROR_SUCCESS) && !InterlockedExchangeAdd( &g_bCancel, 0 ) )
+				while ( (SizeRemaining.QuadPart > 0) && (dwError == ERROR_SUCCESS) && !g_bCancel )
 				{
 					/* Update the progress control */
 					{
@@ -203,7 +203,7 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 		/* Wait for the thread to finish */
 		WriterThread.join();
 
-		if ( !InterlockedExchangeAdd( &g_bCancel, 0 ) && (dwError == ERROR_SUCCESS) )
+		if ( !g_bCancel && (dwError == ERROR_SUCCESS) )
 		{
 			/* Write the target file name to the batch file */
 #ifdef ANSIBATCHOUTPUT
@@ -260,7 +260,7 @@ unsigned __stdcall SplitControlThread_Reader( unique_ptr<SplitThreadData> ustd )
 				LocalFree( lpMsgBuf );
 
 				/* Set the cancel flag so that we don't close the dialog */
-				InterlockedExchange( &g_bCancel, TRUE );
+				g_bCancel = true;
 			}
 		}
 	}

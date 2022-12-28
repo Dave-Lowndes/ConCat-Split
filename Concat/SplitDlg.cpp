@@ -303,7 +303,7 @@ void CSplitDlg::SplitEm( HWND hWnd, HWND hProgress, bool bCreateBatchFile, bool 
 					}
 
 					/* Clear the cancel flag */
-					InterlockedExchange( &g_bCancel, FALSE );
+					g_bCancel = false;
 
 					// Start the split worker thread, moving the unique_ptr data to ownership of the thread (so it deletes it)
 					std::thread sctr( SplitControlThread_Reader, std::move( pstd ) );

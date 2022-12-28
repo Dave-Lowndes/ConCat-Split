@@ -34,7 +34,7 @@ void CConcatDlg::ConcatEm( HWND hProgress, LPCTSTR szToName )
 		UIDisable();
 
 		/* Clear the cancel flag */
-		InterlockedExchange( &g_bCancel, FALSE );
+		g_bCancel = false;
 
 		std::thread cctr( ConcatControlThread_Reader, std::move( pctd ) );
 		// Don't wait for the thread to finish
