@@ -433,13 +433,15 @@ void CConcatDlg::OnUpDown( UINT nID )
 			auto& FileNameAtCurItem = m_Files.at( CurItem );
 
 			std::swap( FileNameAtPos, FileNameAtCurItem );
-
+#pragma warning( push )
+#pragma warning( disable : 26451 )
 			/* Re-display the item in the list box */
 			ListBox_InsertString( hList, pos, FileNameAtPos.c_str() );
 			ListBox_DeleteString( hList, pos + 1 );
 
 			ListBox_InsertString( hList, CurItem, FileNameAtCurItem.c_str() );
 			ListBox_DeleteString( hList, CurItem + 1 );
+#pragma warning( pop )
 
 			/* Reset the current item */
 			ListBox_SetCurSel( hList, pos );
