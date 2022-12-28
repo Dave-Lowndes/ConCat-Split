@@ -5,7 +5,7 @@
 #include "SplitThreadData.h"
 #include "resource.h"
 
-class CSplitDlg : public CommonDlg
+class CSplitDlg final : public CommonDlg
 {
 	//	DECLARE_DYNAMIC( CSplitDlg )
 

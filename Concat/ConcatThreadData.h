@@ -2,7 +2,7 @@
 #include "CommonThreadData.h"
 #include "CSelPlusReg.h"
 
-class ConcatThreadData : public CommonThreadData
+class ConcatThreadData final : public CommonThreadData
 {
 public:
 	// Prevent inadvertent copying

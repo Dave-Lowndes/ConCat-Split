@@ -27,7 +27,7 @@ DEFINE_GUID(CLSID_ShellExtension,
 //
 // CClassFactory defines a shell extension class factory object.
 //
-class CClassFactory : public IClassFactory
+class CClassFactory final : public IClassFactory
 {
 protected:
     ULONG   m_cRef;         // Object reference count
@@ -49,7 +49,7 @@ public:
 //
 // CShellExtension defines a context menu shell extension object.
 //
-class CShellExtension : public IContextMenu, IShellExtInit
+class CShellExtension final : public IContextMenu, IShellExtInit
 {
 private:
     ULONG m_cRef;	// Object reference count
@@ -87,7 +87,7 @@ private:
 	CComPtr<IDataObject> m_SelData;
 };
 
-class CApp : public CWinApp
+class CApp final : public CWinApp
 {
 public:
     CApp()

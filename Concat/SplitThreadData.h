@@ -60,7 +60,7 @@ public:
 	//	HandlePlusSize& operator=( HandlePlusSize&& ) = delete;
 };
 
-class SplitThreadData : public CommonThreadData
+class SplitThreadData final : public CommonThreadData
 {
 public:
 	// Prevent inadvertent copying

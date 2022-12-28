@@ -4,7 +4,7 @@
 #include "resource.h"
 #include "CSelPlusReg.h"
 
-class CConcatDlg : public CommonDlg
+class CConcatDlg final : public CommonDlg
 {
 public:
 	CConcatDlg( const CSelPlusReg& spr, CWnd * pParentWnd ) :
